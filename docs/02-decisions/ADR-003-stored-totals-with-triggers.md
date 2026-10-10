@@ -1,0 +1,37 @@
+---
+tags: [adr, database]
+status: accepted
+date: 2026-10-10
+---
+
+# ADR-003 · เก็บคอลัมน์ยอดรวมไว้ + ให้ trigger คำนวณ
+
+## Context
+[[er-design]] หัวข้อ Normalization ระบุ "ต้องตัดสินใจ": คอลัมน์ที่คำนวณได้
+`room_total`, `service_total`, `grand_total`, `subtotal`, `night_count` — ลบแล้วทำ VIEW (3NF เข้ม) หรือเก็บไว้พร้อมเหตุผล
+
+## Decision
+**เก็บไว้ตาม diagram** และให้ DB คำนวณเองด้วย trigger (`db/schema/085_totals_triggers.sql`) — แอปห้ามเขียนค่าเหล่านี้
+
+| คอลัมน์ | สูตร | trigger |
+|---|---|---|
+| booking_room.night_count | check_out − check_in ของ booking | BEFORE ins/upd booking_room |
+| booking_room.subtotal | price_per_night × night_count | 〃 |
+| booking_service.subtotal | unit_price × quantity | BEFORE ins/upd booking_service |
+| booking.room_total / service_total | Σ subtotal (ไม่นับ order CANCELLED) | AFTER ins/upd/del ของบรรทัด → `fn_recalc_booking()` |
+| booking.discount_amount | promotion PERCENT/FIXED ถ้า gross ≥ minimum_amount | BEFORE ins/upd booking |
+| booking.grand_total | room + service − discount | 〃 |
+
+`price_per_night`, `unit_price` เป็น **snapshot** ราคา ณ วันจอง (ER ตั้งใจไว้) — ถ้าแอปไม่ส่งมา trigger ดึงจาก rate/branch price ให้
+
+## เหตุผล (ใช้เขียนในรายงาน)
+1. **Snapshot ทางการเงิน** — ใบจองต้องแสดงยอดเดิมแม้ราคา/โปรเปลี่ยนภายหลัง; VIEW จะคำนวณใหม่จากราคาปัจจุบัน
+2. **Performance** — list/dashboard อ่านยอดรวมบ่อยกว่าแก้ไขมาก ไม่ต้อง aggregate ทุกครั้ง
+3. **ความถูกต้องยังอยู่ที่ DB** — redundancy ควบคุมโดย trigger จุดเดียว ไม่ใช่แอปหลายที่ → ไม่เกิด update anomaly
+4. 3NF ถูก "ละเมิดโดยตั้งใจ" แบบมีกลไกกำกับ — อธิบายได้ว่าเป็น controlled denormalization
+
+## ทดสอบ
+`npm run db:test` → เคส totals 4 ข้อ (ยอด BK-0001, เพิ่มบรรทัด, ยกเลิก order, เปลี่ยนวัน)
+
+## Open
+- [ ] ส่วนลด member tier ยังไม่รวมใน `discount_amount` — ต้องตัดสินใจว่า stack กับ promotion ไหม

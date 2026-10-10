@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: hotel-advdb-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hotel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotel_dev_pw}
+      POSTGRES_DB: ${POSTGRES_DB:-hotel_advdb}
+      TZ: Asia/Bangkok
+    # current_date / now() in views and seeds follow Bangkok time
+    command: ["postgres", "-c", "timezone=Asia/Bangkok"]
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - hotel-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hotel} -d ${POSTGRES_DB:-hotel_advdb}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  hotel-pgdata:

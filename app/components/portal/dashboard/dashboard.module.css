@@ -1,0 +1,17 @@
+/* ui-standard.md §4 — metric grid */
+.metricGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  margin-bottom: 20px;
+}
+
+@media (max-width: 575px) {
+  .metricGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* a lone last card takes the full row instead of leaving a gap */
+  .metricGrid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}

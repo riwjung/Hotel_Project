@@ -1,0 +1,43 @@
+/* Design tokens — docs/04-standards/ui-standard.md §3.
+   Ant Design owns component styling via ConfigProvider (app/providers.tsx);
+   these tokens are for the few things antd does not cover. */
+:root {
+  --bg: #f4f6fb;            /* app background — soft blue-grey, not white */
+  --surface: #ffffff;       /* cards / panels */
+  --text: #0e1726;
+  --muted: #506690;
+  --border: #e2e8f1;
+  --accent: #2f6bff;
+  --accent-strong: #1f4fd6;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body), var(--font-thai), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
