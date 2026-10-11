@@ -76,7 +76,7 @@ export const NAV: NavGroup[] = [
     label: "Reservations",
     note: "03-modules/D-booking.md",
     items: [
-      { path: "/bookings", label: "Bookings", icon: "booking", permission: "BOOKING_VIEW", status: "planned", tables: ["booking", "booking_room", "guest", "booking_status_log"] },
+      { path: "/bookings", label: "Bookings", icon: "booking", permission: "BOOKING_VIEW", status: "ready", tables: ["booking", "booking_room", "guest", "booking_status_log"] },
       { path: "/customers", label: "Customers", icon: "customer", permission: "CUSTOMER_VIEW", status: "planned", tables: ["customer", "member_tier"] },
     ],
   },
@@ -97,7 +97,7 @@ export const NAV: NavGroup[] = [
     label: "Operations",
     note: "03-modules/F-operations.md",
     items: [
-      { path: "/housekeeping", label: "Housekeeping", icon: "housekeeping", permission: "HOUSEKEEPING_VIEW", status: "planned", tables: ["housekeeping_task"] },
+      { path: "/housekeeping", label: "Housekeeping", icon: "housekeeping", permission: "HOUSEKEEPING_VIEW", status: "ready", tables: ["housekeeping_task"] },
       { path: "/maintenance", label: "Maintenance", icon: "maintenance", permission: "MAINTENANCE_VIEW", status: "planned", tables: ["maintenance_request"] },
     ],
   },

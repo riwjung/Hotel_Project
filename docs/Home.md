@@ -11,6 +11,8 @@ Next.js 16 (Route Handlers) + Ant Design 6 + PostgreSQL 17 (raw SQL ผ่าน
 > เริ่มที่นี่ทุกครั้ง — ทั้งคนและ AI agent (CLAUDE.md ที่ root ชี้มาที่ไฟล์นี้)
 
 ## สถานะล่าสุด
+- [[2026-10-11-session-log|Session log 2026-10-11]] — booking lifecycle + housekeeping พร้อม API integration test
+- [[2026-10-11-handoff-codex|Handoff → Codex 2026-10-11]] — สรุปทั้งหมดสำหรับ agent ที่ทำต่อ (เริ่มที่ Task 1: Bookings list)
 - [[2026-10-10-session-log|Session log 2026-10-10]] — skeleton เสร็จ, verify แล้ว
 - [[2026-10-10-skeleton-plan|Skeleton plan]] — แผนที่อนุมัติ (มี deviation บันทึกใน session log)
 
@@ -31,9 +33,9 @@ Next.js 16 (Route Handlers) + Ant Design 6 + PostgreSQL 17 (raw SQL ผ่าน
 | A | [[A-org-access]] | Branches ✅ · Employees, Roles ⏳ |
 | B | [[B-workforce]] | ⏳ |
 | C | [[C-rooms]] | Rooms (read-only) ✅ · ที่เหลือ ⏳ |
-| D | [[D-booking]] | ⏳ (หัวใจของระบบ — ทำต่อเป็นอันดับแรก) |
+| D | [[D-booking]] | Booking list/detail/lifecycle ✅ · Create booking, Customers ⏳ |
 | E | [[E-services]] | ⏳ |
-| F | [[F-operations]] | ⏳ |
+| F | [[F-operations]] | Housekeeping ✅ · Maintenance ⏳ |
 | G | [[G-finance-cx]] | ⏳ |
 
 DB ของทุกโมดูลพร้อมแล้ว (DDL + rules + seed + tests) — ที่ยังขาดคือ API + หน้าจอ

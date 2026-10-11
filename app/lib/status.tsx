@@ -15,6 +15,8 @@ import {
 } from "@ant-design/icons";
 import type { BranchStatus } from "@/app/components/portal/branch/types";
 import type { RoomStatus } from "@/app/components/portal/room/types";
+import type { BookingStatus, PaymentStatus } from "@/app/components/portal/booking/types";
+import type { HousekeepingStatus } from "@/app/components/portal/housekeeping/types";
 
 // Status palettes: DB stores the code, the UI shows label + color + icon.
 // Color is never the only signal (icon + label too). Key order = workflow order,
@@ -36,8 +38,6 @@ export const ROOM_STATUS: Record<RoomStatus, StatusMeta> = {
   OUT_OF_SERVICE: { label: "Out of service", color: "default", icon: <StopOutlined /> },
 };
 
-export type BookingStatus = "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED" | "NO_SHOW";
-
 export const BOOKING_STATUS: Record<BookingStatus, StatusMeta> = {
   PENDING:     { label: "Pending",     color: "default", icon: <ClockCircleOutlined /> },
   CONFIRMED:   { label: "Confirmed",   color: "blue",    icon: <CheckOutlined /> },
@@ -45,6 +45,21 @@ export const BOOKING_STATUS: Record<BookingStatus, StatusMeta> = {
   CHECKED_OUT: { label: "Checked out", color: "cyan",    icon: <LogoutOutlined /> },
   CANCELLED:   { label: "Cancelled",   color: "red",     icon: <CloseCircleOutlined /> },
   NO_SHOW:     { label: "No-show",     color: "volcano", icon: <UserDeleteOutlined /> },
+};
+
+export const PAYMENT_STATUS: Record<PaymentStatus, StatusMeta> = {
+  PENDING:  { label: "Pending",  color: "gold",    icon: <ClockCircleOutlined /> },
+  PAID:     { label: "Paid",     color: "green",   icon: <CheckCircleOutlined /> },
+  FAILED:   { label: "Failed",   color: "red",     icon: <CloseCircleOutlined /> },
+  REFUNDED: { label: "Refunded", color: "default", icon: <LogoutOutlined /> },
+};
+
+export const HOUSEKEEPING_STATUS: Record<HousekeepingStatus, StatusMeta> = {
+  PENDING:     { label: "Pending",     color: "default", icon: <ClockCircleOutlined /> },
+  IN_PROGRESS: { label: "In progress", color: "blue",    icon: <ClearOutlined /> },
+  DONE:        { label: "Done",        color: "gold",    icon: <CheckOutlined /> },
+  VERIFIED:    { label: "Verified",    color: "green",   icon: <CheckCircleOutlined /> },
+  CANCELLED:   { label: "Cancelled",   color: "red",     icon: <CloseCircleOutlined /> },
 };
 
 /** Options for a status filter <Select>, in workflow order. */

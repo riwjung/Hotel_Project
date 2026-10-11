@@ -2,6 +2,9 @@
 -- Business-rule tests (run by `npm run db:test` inside BEGIN … ROLLBACK)
 -- Depends on the demo seed (110_demo.sql).
 --
+-- Dates are anchored on the seeded bookings (not current_date), so the tests
+-- still pass on a later day than the one the seed was loaded.
+--
 -- Pattern for "must be rejected" cases:
 --   try the write → RAISE 'FAIL: …' if it got through
 --   EXCEPTION WHEN <expected error> → RAISE NOTICE 'PASS: …'
@@ -56,13 +59,14 @@ BEGIN
 END $$;
 
 -- R3 · double-booking a room for overlapping dates -------------------------
--- Room 4 (BKK 201) is held by BK-0001 from current_date-2 to current_date+1.
+-- Room 4 (BKK 201) is held by BK-0001 for [in, out). Start one day before its check-out.
 DO $$
 DECLARE
   v_booking integer;
+  v_out     date := (SELECT check_out_date FROM booking WHERE booking_code = 'BK-0001');
 BEGIN
   INSERT INTO booking (booking_code, customer_id, branch_id, check_in_date, check_out_date)
-  VALUES ('BK-T001', 2, 1, current_date, current_date + 2)
+  VALUES ('BK-T001', 2, 1, v_out - 1, v_out + 1)
   RETURNING booking_id INTO v_booking;
 
   BEGIN
@@ -78,9 +82,10 @@ END $$;
 DO $$
 DECLARE
   v_booking integer;
+  v_out     date := (SELECT check_out_date FROM booking WHERE booking_code = 'BK-0001');
 BEGIN
   INSERT INTO booking (booking_code, customer_id, branch_id, check_in_date, check_out_date)
-  VALUES ('BK-T002', 2, 1, current_date + 1, current_date + 3)
+  VALUES ('BK-T002', 2, 1, v_out, v_out + 2)
   RETURNING booking_id INTO v_booking;
 
   INSERT INTO booking_room (booking_id, room_id, rate_id) VALUES (v_booking, 4, 2);
@@ -124,18 +129,19 @@ BEGIN
 END $$;
 
 -- R3 · extending a stay into another booking is caught too -----------------
--- BK-0002 holds room 1 for [today, today+2). Push BK-T005 into it.
+-- BK-0002 holds room 1 for [in, in+2). BK-T005 ends exactly at its check-in, then extends into it.
 DO $$
 DECLARE
   v_booking integer;
+  v_in      date := (SELECT check_in_date FROM booking WHERE booking_code = 'BK-0002');
 BEGIN
   INSERT INTO booking (booking_code, customer_id, branch_id, check_in_date, check_out_date)
-  VALUES ('BK-T005', 2, 1, current_date - 3, current_date)
+  VALUES ('BK-T005', 2, 1, v_in - 3, v_in)
   RETURNING booking_id INTO v_booking;
   INSERT INTO booking_room (booking_id, room_id, rate_id) VALUES (v_booking, 1, 1);
 
   BEGIN
-    UPDATE booking SET check_out_date = current_date + 1 WHERE booking_id = v_booking;
+    UPDATE booking SET check_out_date = v_in + 1 WHERE booking_id = v_booking;
     RAISE EXCEPTION 'FAIL: date change into an existing booking was accepted';
   EXCEPTION WHEN raise_exception THEN
     IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;

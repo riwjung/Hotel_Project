@@ -1,7 +1,7 @@
 ---
 tags: [module]
 module: F
-status: planned
+status: in-progress
 ---
 
 # F · ปฏิบัติการหน้างาน
@@ -17,12 +17,12 @@ status: planned
 ## หน้าจอ
 | path | สถานะ | permission |
 |---|---|---|
-| `/housekeeping` | ⏳ | `HOUSEKEEPING_VIEW` / `HOUSEKEEPING_MANAGE` |
+| `/housekeeping` | ✅ list/filter + workflow | `HOUSEKEEPING_VIEW` / `HOUSEKEEPING_MANAGE` |
 | `/maintenance` | ⏳ | `MAINTENANCE_VIEW` / `MAINTENANCE_MANAGE` |
 
 ## Backlog
-- [ ] Housekeeping board วันนี้ (PENDING / IN_PROGRESS / DONE / VERIFIED), assign แม่บ้าน
-- [ ] สร้าง CHECKOUT_CLEAN อัตโนมัติเมื่อ check-out ([[D-booking]]) — trigger หรือใน API transaction
-- [ ] VERIFIED แล้ว → room_status AVAILABLE
+- [x] Housekeeping board วันนี้ (PENDING / IN_PROGRESS / DONE / VERIFIED), assign แม่บ้าน
+- [x] สร้าง CHECKOUT_CLEAN อัตโนมัติเมื่อ check-out ([[D-booking]]) — ทำใน API transaction
+- [x] VERIFIED แล้ว → room_status AVAILABLE
 - [ ] Maintenance: แจ้งซ่อม, priority, assign ช่าง, ปิดงาน + cost; ห้องที่ซ่อม → room_status MAINTENANCE
 - [ ] Dashboard มีตัวเลข open maintenance / housekeeping pending แล้ว (ลิงก์ไปหน้านี้เมื่อทำเสร็จ)

@@ -1,7 +1,7 @@
 ---
 tags: [module]
 module: D
-status: planned
+status: in-progress
 priority: next
 ---
 
@@ -23,8 +23,8 @@ palette อยู่ใน `app/lib/status.tsx › BOOKING_STATUS` แล้ว
 ## หน้าจอ
 | path | สถานะ | permission |
 |---|---|---|
-| `/bookings` | ⏳ | `BOOKING_VIEW` / `BOOKING_MANAGE` |
-| `/bookings/[id]` | ⏳ | 〃 |
+| `/bookings` | ✅ list/filter + lifecycle actions | `BOOKING_VIEW` / `BOOKING_MANAGE` |
+| `/bookings/[id]` | ✅ detail/check-in/payment/check-out | 〃 |
 | `/customers` | ⏳ | `CUSTOMER_VIEW` / `CUSTOMER_MANAGE` |
 
 ## วิธีเขียน status change (สำคัญ)
@@ -37,11 +37,11 @@ await withTx(session, (db) =>
 ```
 
 ## Backlog
-- [ ] Bookings list จาก `v_booking_overview` (filter สาขา/สถานะ/ช่วงวัน, sort สถานะตาม workflow)
+- [x] Bookings list จาก `v_booking_overview` (filter สาขา/สถานะ/ช่วงวัน, sort สถานะตาม workflow)
 - [ ] สร้าง booking: เลือกลูกค้า → วัน → ห้องว่าง (query ห้องที่ไม่ชน R3) → rate → promotion
-- [ ] Booking detail: Descriptions + ห้อง + guests + services + payments + timeline จาก `booking_status_log`
-- [ ] Check-in: บันทึก `actual_check_in`, `checkin_by_emp_id`, `key_card_no`, guests; ปรับ room_status → OCCUPIED
-- [ ] Check-out: `actual_check_out`, room_status → CLEANING, สร้าง housekeeping_task อัตโนมัติ ([[F-operations]])
-- [ ] Cancel / No-show ผ่าน `modal.confirm` danger
+- [x] Booking detail: Descriptions + ห้อง + guests + services + payments + timeline จาก `booking_status_log`
+- [x] Check-in: บันทึก `actual_check_in`, `checkin_by_emp_id`, `key_card_no`, guests; ปรับ room_status → OCCUPIED
+- [x] Check-out: `actual_check_out`, room_status → CLEANING, สร้าง housekeeping_task อัตโนมัติ ([[F-operations]])
+- [x] Cancel / No-show ผ่าน `modal.confirm` danger
 - [ ] Customers CRUD + tier/points
 - [ ] Customer self-service site + customer login (แยก route group `(site)`) — ยังไม่อยู่ในขอบเขต skeleton
