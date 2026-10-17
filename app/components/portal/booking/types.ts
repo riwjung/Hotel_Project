@@ -118,7 +118,12 @@ export type BookingDetail = BookingListItem & {
   createdByName: string | null;
   roomTotal: number;
   serviceTotal: number;
+  /** promotionDiscount + memberDiscount */
   discountAmount: number;
+  /** the customer's tier rate (percent) snapshotted when the booking was made */
+  memberDiscountRate: number;
+  promotionDiscount: number;
+  memberDiscount: number;
   balance: number;
   rooms: BookingRoomDetail[];
   guests: BookingGuest[];

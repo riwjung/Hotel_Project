@@ -55,10 +55,37 @@ date: 2026-10-17
 ## เบี่ยงจากแผน
 - ทำงานของ "คน B" (Booking list, Housekeeping, Customers) ไปแล้วทั้งหมด → B ควรเรียนรู้ด้วยการ review/trace 3 branch นี้แทน
 - commit แยก branch ในเครื่องเพราะผู้ใช้สั่งให้ทำ `feature/create-booking` และ `feature/customers`; ยังไม่ push และยังไม่ merge
-- Tier ของลูกค้าเลือกเอง (ฟอร์มแค่แนะนำตามแต้ม) — ไม่ได้ทำ trigger ให้ tier ตามแต้มอัตโนมัติ เพราะยังไม่ได้ตัดสินใจ
+- ~~Tier ของลูกค้าเลือกเอง~~ → รอบ 2 ด้านล่างเปลี่ยนเป็น tier ตามแต้มอัตโนมัติแล้ว
+
+## รอบ 2 — ส่วนลด tier + tier ตามแต้ม (branch 4: `feature/member-tier-rules`)
+ผู้ใช้ตัดสินใจ: ส่วนลด tier **ใช้ร่วมกับ promotion ได้** และ tier **ต้องเปลี่ยนตามแต้มอัตโนมัติใน DB** → [[ADR-006-member-tier-discount-and-derived-tier]]
+- R13: `trg_customer_10_set_tier` + `trg_member_tier_90_resync_customers` (statement-level); ladder ต้องเริ่มที่ 0
+- ส่วนลด: promotion ก่อน แล้ว tier% จากยอดที่เหลือ (`fn_booking_discounts` ใช้ทั้ง trigger และหน้า detail)
+- **คอลัมน์ใหม่ `booking.member_discount_rate`** = snapshot อัตราตอนจอง → tier ที่เปลี่ยนทีหลังไม่แก้ยอดของ booking เก่า
+  (ยังเป็น 31 ตาราง / 49 FK แต่ **รูป ERD ต้องเพิ่มคอลัมน์นี้ก่อนส่ง**)
+- UI: ฟอร์มลูกค้าไม่มีช่องเลือก tier แล้ว (แสดง tier ล่วงหน้าใต้ช่องแต้ม), ตารางลูกค้าแสดง % ส่วนลด,
+  detail แยก promotion / member discount, หน้า create booking บอกส่วนลด member ของลูกค้าที่เลือก
+
+| ตรวจอะไร | ผล |
+|---|---|
+| `npm run db:test` | 34/34 (BK-0001 = 7,000 − 700 − 630 = 5,670; BK-0003 = 17,300 − 500 − 2,520 = 14,280; R13 ×4; snapshot ×2) |
+| `npm run db:reset` | 31 tables, 49 FKs, 21 triggers, 2 views |
+| typecheck / lint / build | ผ่าน (40 pages) |
+| Headless Chrome | bookings 44/44 · customers 22/22 · create booking 34/34 (Gold booking 2,400 − 10% = 2,160; PATCH ที่ส่ง `tierId` มาถูกเมิน) |
+
+## ความคืบหน้า (ประเมิน ณ 2026-10-17)
+| มุมมอง | ฐานการนับ | % |
+|---|---|---|
+| Must-have ตาม `PLAN.md` (เดโมหลัก) | ฟีเจอร์ครบและผ่าน QA; เหลือ review/merge, ซ้อมเดโม, screenshot, อัปเดต ERD | ~90% |
+| ฐานข้อมูล (ส่วนที่ให้คะแนนหลัก) | 31/31 ตาราง, 49 FK, R1–R13, 21 triggers, 2 views, 34 tests; เหลือกฎ assignee สาขาเดียวกัน, การได้แต้ม, query รายงาน | ~90% |
+| หน้าจอทั้งระบบ | เมนูที่ใช้งานได้ 6/24 | 25% |
+| Backlog ของ 7 โมดูล | 12/41 ข้อ | 29% |
+| **รวมถ่วงน้ำหนัก** | DB 50% · แอป 30% · เอกสาร/รายงาน/เดโม 20% (สมมติฐาน) | **~65%** |
 
 ## ต่อไป
-- [ ] B trace + review 3 branch ด้วย [[page-api-table-map]] (ตอบคำถาม 8 ข้อ) แล้วค่อย merge ตามลำดับ 1 → 2 → 3
-- [ ] ตัดสินใจ: ส่วนลด member tier รวมกับ promotion ไหม (ADR-003 › Open) · tier ตามแต้มอัตโนมัติไหม
+- [ ] B trace + review 4 branch ด้วย [[page-api-table-map]] (ตอบคำถาม 8 ข้อ) แล้วค่อย merge ตามลำดับ 1 → 2 → 3 → 4
+- [x] ตัดสินใจ: ส่วนลด tier ซ้อน promotion · tier ตามแต้มอัตโนมัติ → ADR-006
+- [ ] ตัดสินใจ: ได้แต้มอัตโนมัติไหม (เช่นทุก ฿100 ของ grand_total = 1 แต้ม ตอน check-out) — ถ้าใช่ทำเป็น trigger
+- [ ] อัปเดตรูป ERD ให้มี `booking.member_discount_rate`
 - [ ] Stretch ที่เหลือ (ถ้ามีเวลาก่อน 22 ต.ค.): Maintenance (F), Payments list (G)
 - [ ] 24 ต.ค.: `npm run db:reset` แล้วซ้อมเดโมเต็มเส้น + เก็บ screenshot สำรอง

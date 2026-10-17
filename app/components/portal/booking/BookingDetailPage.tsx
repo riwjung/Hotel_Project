@@ -166,10 +166,23 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
             { key: "channel", label: "Channel", children: codeLabel(booking.bookingChannel) },
             { key: "stay", label: "Stay", children: `${formatDate(booking.checkInDate)} – ${formatDate(booking.checkOutDate)}` },
             { key: "rooms", label: "Rooms / guests", children: `${booking.roomCount} room(s) · ${booking.guestCount} guest(s)` },
-            { key: "promotion", label: "Promotion", children: booking.promotionCode ? `${booking.promotionCode} · ${booking.promotionName}` : "—" },
+            {
+              key: "promotion",
+              label: "Promotion",
+              children: booking.promotionCode
+                ? `${booking.promotionCode} · ${booking.promotionDiscount > 0 ? `−${formatMoney(booking.promotionDiscount)}` : "below minimum spend, no discount"}`
+                : "—",
+            },
             { key: "roomTotal", label: "Room total", children: formatMoney(booking.roomTotal) },
             { key: "serviceTotal", label: "Service total", children: formatMoney(booking.serviceTotal) },
-            { key: "discount", label: "Discount", children: formatMoney(booking.discountAmount) },
+            {
+              key: "memberDiscount",
+              label: "Member discount",
+              // rate is the snapshot taken when the booking was made, not the customer's tier today
+              children: booking.memberDiscountRate > 0
+                ? `${booking.memberDiscountRate}% after promotion · −${formatMoney(booking.memberDiscount)}`
+                : "—",
+            },
             { key: "grand", label: "Grand total", children: formatMoney(booking.grandTotal) },
             { key: "paid", label: "Paid", children: formatMoney(booking.paidTotal) },
             { key: "balance", label: "Balance", children: <Typography.Text strong type={booking.balance > 0 ? "danger" : undefined}>{formatMoney(booking.balance)}</Typography.Text> },

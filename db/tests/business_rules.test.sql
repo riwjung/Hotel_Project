@@ -244,18 +244,35 @@ BEGIN
   END;
 END $$;
 
--- Totals · seeded BK-0001: 3 nights × 1,800 + breakfast 2 × 350 + massage 900
---          gross 7,000 → EARLYBIRD 10% = 700 → grand 6,300
+-- Totals · seeded BK-0001 (Kanya, Gold 10%): 3 nights × 1,800 + breakfast 2 × 350 + massage 900
+--          gross 7,000 → EARLYBIRD 10% = 700 → 6,300 → member 10% = 630 → grand 5,670
+--          (promotion first, then the member rate on what is left — ADR-006)
 DO $$
 DECLARE
   b booking%ROWTYPE;
 BEGIN
   SELECT * INTO b FROM booking WHERE booking_code = 'BK-0001';
-  IF b.room_total = 5400 AND b.service_total = 1600 AND b.discount_amount = 700 AND b.grand_total = 6300 THEN
-    RAISE NOTICE 'PASS: totals for BK-0001 = 5400 + 1600 − 700 = 6300';
+  IF b.room_total = 5400 AND b.service_total = 1600 AND b.member_discount_rate = 10
+     AND b.discount_amount = 1330 AND b.grand_total = 5670 THEN
+    RAISE NOTICE 'PASS: totals for BK-0001 = 7000 − 700 promo − 630 member = 5670';
   ELSE
-    RAISE EXCEPTION 'FAIL: BK-0001 totals room=% service=% discount=% grand=%',
-      b.room_total, b.service_total, b.discount_amount, b.grand_total;
+    RAISE EXCEPTION 'FAIL: BK-0001 totals room=% service=% rate=% discount=% grand=%',
+      b.room_total, b.service_total, b.member_discount_rate, b.discount_amount, b.grand_total;
+  END IF;
+END $$;
+
+-- Totals · seeded BK-0003 (Mei, Platinum 15%) stacks a FIXED promotion the same way
+--          13,500 rooms + 3,800 services = 17,300 → WELCOME500 = 500 → 16,800 → 15% = 2,520 → 14,280
+DO $$
+DECLARE
+  b booking%ROWTYPE;
+BEGIN
+  SELECT * INTO b FROM booking WHERE booking_code = 'BK-0003';
+  IF b.discount_amount = 3020 AND b.grand_total = 14280 THEN
+    RAISE NOTICE 'PASS: totals for BK-0003 = 17300 − 500 promo − 2520 member = 14280';
+  ELSE
+    RAISE EXCEPTION 'FAIL: BK-0003 totals rate=% discount=% grand=%',
+      b.member_discount_rate, b.discount_amount, b.grand_total;
   END IF;
 END $$;
 
@@ -417,5 +434,113 @@ BEGIN
     RAISE NOTICE 'PASS: generated booking code % follows the seeded codes', v_code;
   ELSE
     RAISE EXCEPTION 'FAIL: unexpected generated booking code %', v_code;
+  END IF;
+END $$;
+
+-- R13 · a customer's tier is derived from member_point (the tier_id sent is ignored)
+DO $$
+DECLARE
+  v_tier member_tier.tier_name%TYPE;
+BEGIN
+  INSERT INTO customer (tier_id, first_name, last_name, email, member_point)
+  VALUES (4, 'Tier', 'Test', 'tier.test@example.com', 0);                      -- asks for Platinum
+  SELECT mt.tier_name INTO v_tier
+  FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id
+  WHERE c.email = 'tier.test@example.com';
+  IF v_tier = 'Basic' THEN
+    RAISE NOTICE 'PASS: R13 new customer with 0 points is Basic, not the tier sent';
+  ELSE
+    RAISE EXCEPTION 'FAIL: new 0-point customer got tier %', v_tier;
+  END IF;
+END $$;
+
+-- R13 · earning and losing points moves the tier up and down; a manual tier does not stick
+DO $$
+DECLARE
+  v_up     member_tier.tier_name%TYPE;
+  v_down   member_tier.tier_name%TYPE;
+  v_manual member_tier.tier_name%TYPE;
+BEGIN
+  UPDATE customer SET member_point = 5200 WHERE email = 'tier.test@example.com';
+  SELECT mt.tier_name INTO v_up FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id
+  WHERE c.email = 'tier.test@example.com';
+
+  UPDATE customer SET member_point = 1200 WHERE email = 'tier.test@example.com';
+  SELECT mt.tier_name INTO v_down FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id
+  WHERE c.email = 'tier.test@example.com';
+
+  UPDATE customer SET tier_id = 4 WHERE email = 'tier.test@example.com';       -- try to force Platinum
+  SELECT mt.tier_name INTO v_manual FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id
+  WHERE c.email = 'tier.test@example.com';
+
+  IF v_up = 'Gold' AND v_down = 'Silver' AND v_manual = 'Silver' THEN
+    RAISE NOTICE 'PASS: R13 5200 pts → Gold, 1200 pts → Silver, forced Platinum stays Silver';
+  ELSE
+    RAISE EXCEPTION 'FAIL: tiers up=% down=% manual=%', v_up, v_down, v_manual;
+  END IF;
+END $$;
+
+-- R13 · changing a tier threshold re-derives every customer (statement trigger on member_tier)
+-- Laura has 1,200 points and Somchai 1,800. Raising Silver to 1,500 drops only Laura to Basic.
+DO $$
+DECLARE
+  v_laura   member_tier.tier_name%TYPE;
+  v_somchai member_tier.tier_name%TYPE;
+BEGIN
+  UPDATE member_tier SET min_point = 1500 WHERE tier_name = 'Silver';
+  SELECT mt.tier_name INTO v_laura FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id
+  WHERE c.email = 'laura.schmidt@example.com';
+  SELECT mt.tier_name INTO v_somchai FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id
+  WHERE c.email = 'somchai@example.com';
+  IF v_laura = 'Basic' AND v_somchai = 'Silver' THEN
+    RAISE NOTICE 'PASS: R13 raising Silver to 1500 moved Laura (1200) to Basic, Somchai (1800) stays Silver';
+  ELSE
+    RAISE EXCEPTION 'FAIL: after threshold change Laura=% Somchai=%', v_laura, v_somchai;
+  END IF;
+END $$;
+
+-- R13 · the ladder must start at 0 points, otherwise a customer would have no tier
+DO $$
+BEGIN
+  BEGIN
+    UPDATE member_tier SET min_point = 100 WHERE tier_name = 'Basic';
+    RAISE EXCEPTION 'FAIL: a tier ladder that leaves 0-point customers without a tier was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R13 ladder without a 0-point tier rejected — %', SQLERRM;
+  END;
+END $$;
+
+-- Totals · the member rate is a snapshot: a later tier change does not reprice the booking
+DO $$
+DECLARE
+  v_before booking%ROWTYPE;
+  v_after  booking%ROWTYPE;
+BEGIN
+  SELECT * INTO v_before FROM booking WHERE booking_code = 'BK-0001';
+  UPDATE customer SET member_point = 0 WHERE customer_id = 1;                      -- Kanya: Gold → Basic
+  UPDATE booking SET booking_channel = booking_channel WHERE booking_code = 'BK-0001';  -- forces a recompute
+  UPDATE booking SET member_discount_rate = 50 WHERE booking_code = 'BK-0001';     -- the app cannot overwrite it
+  SELECT * INTO v_after FROM booking WHERE booking_code = 'BK-0001';
+  IF v_after.member_discount_rate = 10 AND v_after.grand_total = v_before.grand_total THEN
+    RAISE NOTICE 'PASS: BK-0001 keeps its 10%% member rate and total after Kanya drops to Basic';
+  ELSE
+    RAISE EXCEPTION 'FAIL: BK-0001 rate % → %, grand % → %',
+      v_before.member_discount_rate, v_after.member_discount_rate, v_before.grand_total, v_after.grand_total;
+  END IF;
+END $$;
+
+-- Totals · a new booking snapshots the customer's tier rate at the time it is made
+DO $$
+DECLARE
+  v_rate booking.member_discount_rate%TYPE;
+BEGIN
+  INSERT INTO booking (customer_id, branch_id, check_in_date, check_out_date)
+  VALUES (4, 1, current_date + 100, current_date + 101)                            -- Mei: Platinum 15%
+  RETURNING member_discount_rate INTO v_rate;
+  IF v_rate = 15 THEN
+    RAISE NOTICE 'PASS: new booking for a Platinum member snapshots 15%%';
+  ELSE
+    RAISE EXCEPTION 'FAIL: new booking snapshot rate = %', v_rate;
   END IF;
 END $$;

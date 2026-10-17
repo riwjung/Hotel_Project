@@ -27,11 +27,15 @@ export async function getBookingDetail(id: number, scope: number | null): Promis
        v.booking_channel AS "bookingChannel", v.booking_status AS "bookingStatus",
        b.booking_date AS "bookingDate", b.room_total AS "roomTotal",
        b.service_total AS "serviceTotal", b.discount_amount AS "discountAmount",
+       b.member_discount_rate AS "memberDiscountRate",
+       d.promotion_discount AS "promotionDiscount", d.member_discount AS "memberDiscount",
        v.grand_total - v.paid_total AS balance,
        p.promotion_code AS "promotionCode", p.promotion_name AS "promotionName",
        concat_ws(' ', creator.first_name, creator.last_name) AS "createdByName"
      FROM v_booking_overview v
      JOIN booking b ON b.booking_id = v.booking_id
+     -- same function the totals trigger uses, so the split always adds up to discount_amount
+     CROSS JOIN LATERAL fn_booking_discounts(b.room_total + b.service_total, b.promotion_id, b.member_discount_rate) d
      LEFT JOIN promotion p ON p.promotion_id = b.promotion_id
      LEFT JOIN employee creator ON creator.employee_id = b.created_by_emp_id
      WHERE v.booking_id = $1 AND ($2::int IS NULL OR v.branch_id = $2)`,

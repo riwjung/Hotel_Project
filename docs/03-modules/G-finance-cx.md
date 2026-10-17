@@ -24,6 +24,8 @@ status: planned
 - [ ] Payments: บันทึกมัดจำ/ยอดเต็ม/คืนเงิน (refund ต้อง confirm), ยอดค้างชำระ = grand_total − paid_total
 - [ ] แนบสลิป (`slip_url`) — ต้องตัดสินใจที่เก็บไฟล์ (local `public/uploads` หรือ object storage)
 - [ ] Promotions CRUD + จำนวนที่ใช้ไปแล้ว vs `usage_limit`
-- [ ] Member tiers + เลื่อนระดับอัตโนมัติตาม `member_point` (trigger หรือ job)
-- [ ] ตัดสินใจเรื่องส่วนลด tier ซ้อนกับ promotion ([[ADR-003-stored-totals-with-triggers]] › Open)
+- [x] เลื่อน/ลดระดับอัตโนมัติตาม `member_point` → R13 trigger (2026-10-17, [[ADR-006-member-tier-discount-and-derived-tier]])
+- [ ] หน้า `/member-tiers` แก้เกณฑ์/อัตรา — DB คำนวณ tier ลูกค้าทุกคนใหม่ให้เอง (`trg_member_tier_90_resync_customers`)
+- [x] ส่วนลด tier ซ้อนกับ promotion → ซ้อนได้: promotion ก่อน แล้ว tier% จากยอดที่เหลือ, อัตรา snapshot ไว้ที่ booking (ADR-006)
+- [ ] ได้แต้มอัตโนมัติ (เช่นหลัง check-out) — ER ไม่ได้กำหนดอัตรา ต้องตัดสินใจก่อน
 - [ ] Reviews: moderate (PUBLISHED/HIDDEN), ตอบกลับ (`reply_by_emp_id`), คะแนนเฉลี่ยต่อสาขา

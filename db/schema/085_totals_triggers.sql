@@ -7,10 +7,15 @@
 --   booking.room_total        = Σ booking_room.subtotal
 --   booking.service_total     = Σ booking_service.subtotal (excluding CANCELLED orders)
 --   booking.discount_amount   = promotion discount (if gross ≥ minimum_amount)
+--                               + member discount = member_discount_rate % of
+--                                 what is left after the promotion (ADR-006)
 --   booking.grand_total       = room_total + service_total − discount_amount
 --
 -- Snapshots: price_per_night / unit_price default to the current rate /
 -- branch price when the app omits them, and are never changed afterwards.
+-- booking.member_discount_rate is copied from the customer's tier when the
+-- booking is made (or its customer changes) and is never changed afterwards,
+-- so a later tier change (R13) never reprices an existing booking.
 -- =====================================================================
 
 
@@ -54,27 +59,72 @@ CREATE TRIGGER trg_booking_service_20_compute
   FOR EACH ROW EXECUTE FUNCTION fn_booking_service_compute();
 
 
--- booking: discount + grand total on every write --------------------------
-CREATE FUNCTION fn_booking_compute_totals() RETURNS trigger
+-- booking: snapshot the member discount rate -------------------------------
+-- Trigger-owned like the totals: set from the customer's tier on INSERT or when
+-- customer_id changes; any other write keeps the old value.
+CREATE FUNCTION fn_booking_snapshot_member_rate() RETURNS trigger
 LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND NEW.customer_id = OLD.customer_id THEN
+    NEW.member_discount_rate := OLD.member_discount_rate;
+    RETURN NEW;
+  END IF;
+
+  SELECT mt.discount_rate INTO NEW.member_discount_rate
+  FROM customer c
+  JOIN member_tier mt ON mt.tier_id = c.tier_id
+  WHERE c.customer_id = NEW.customer_id;
+
+  NEW.member_discount_rate := COALESCE(NEW.member_discount_rate, 0);
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_booking_25_snapshot_member_rate
+  BEFORE INSERT OR UPDATE ON booking
+  FOR EACH ROW EXECUTE FUNCTION fn_booking_snapshot_member_rate();
+
+
+-- Discount split, shared by the totals trigger and the booking detail query ---
+-- 1) promotion on the gross (PERCENT or FIXED, only if gross ≥ minimum_amount)
+-- 2) member rate on what is left after the promotion
+CREATE FUNCTION fn_booking_discounts(
+  p_gross        numeric,
+  p_promotion_id integer,
+  p_member_rate  numeric,
+  OUT promotion_discount numeric,
+  OUT member_discount    numeric
+)
+LANGUAGE plpgsql STABLE AS $$
 DECLARE
-  v_gross  numeric(12,2);
   v_promo  promotion%ROWTYPE;
 BEGIN
-  v_gross := NEW.room_total + NEW.service_total;
-  NEW.discount_amount := 0;
-
-  IF NEW.promotion_id IS NOT NULL THEN
-    SELECT * INTO v_promo FROM promotion WHERE promotion_id = NEW.promotion_id;
-    IF v_gross >= v_promo.minimum_amount THEN
-      NEW.discount_amount := CASE v_promo.discount_type
-        WHEN 'PERCENT' THEN round(v_gross * v_promo.discount_value / 100, 2)
-        ELSE least(v_promo.discount_value, v_gross)
+  promotion_discount := 0;
+  IF p_promotion_id IS NOT NULL THEN
+    SELECT * INTO v_promo FROM promotion WHERE promotion_id = p_promotion_id;
+    IF p_gross >= v_promo.minimum_amount THEN
+      promotion_discount := CASE v_promo.discount_type
+        WHEN 'PERCENT' THEN round(p_gross * v_promo.discount_value / 100, 2)
+        ELSE least(v_promo.discount_value, p_gross)
       END;
     END IF;
   END IF;
 
-  NEW.grand_total := v_gross - NEW.discount_amount;
+  member_discount := round((p_gross - promotion_discount) * p_member_rate / 100, 2);
+END $$;
+
+
+-- booking: discount + grand total on every write --------------------------
+CREATE FUNCTION fn_booking_compute_totals() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_gross     numeric(12,2);
+  v_discounts record;
+BEGIN
+  v_gross := NEW.room_total + NEW.service_total;
+  SELECT * INTO v_discounts FROM fn_booking_discounts(v_gross, NEW.promotion_id, NEW.member_discount_rate);
+
+  NEW.discount_amount := v_discounts.promotion_discount + v_discounts.member_discount;
+  NEW.grand_total     := v_gross - NEW.discount_amount;
   RETURN NEW;
 END $$;
 

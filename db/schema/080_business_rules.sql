@@ -404,3 +404,50 @@ END $$;
 CREATE TRIGGER trg_booking_room_15_check_min_nights
   BEFORE INSERT OR UPDATE ON booking_room
   FOR EACH ROW EXECUTE FUNCTION fn_booking_room_check_min_nights();
+
+
+-- ---------------------------------------------------------------------
+-- R13 · CUSTOMER tier follows member_point
+--      tier = the member_tier with the highest min_point ≤ member_point.
+--      customer.tier_id is therefore derived data (member_point → tier_id via
+--      the member_tier ladder). It is kept as a column, as in the ER, and owned
+--      by these triggers — the same controlled redundancy as the totals (ADR-003,
+--      ADR-006). A tier_id written by the app is overwritten.
+--      a) on customer insert / points change → recompute that customer
+--      b) on a ladder change (new tier, new threshold) → recompute everyone;
+--         a ladder that leaves some customer without a tier is rejected
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_tier_for_points(p_points integer) RETURNS integer
+LANGUAGE sql STABLE AS $$
+  SELECT tier_id FROM member_tier WHERE min_point <= p_points ORDER BY min_point DESC LIMIT 1
+$$;
+
+CREATE FUNCTION fn_customer_set_tier() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.tier_id := fn_tier_for_points(NEW.member_point);
+  IF NEW.tier_id IS NULL THEN
+    RAISE EXCEPTION 'No member tier starts at or below % points — the lowest tier must start at 0',
+      NEW.member_point;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_customer_10_set_tier
+  BEFORE INSERT OR UPDATE OF member_point, tier_id ON customer
+  FOR EACH ROW EXECUTE FUNCTION fn_customer_set_tier();
+
+CREATE FUNCTION fn_member_tier_resync_customers() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE customer SET tier_id = fn_tier_for_points(member_point)
+  WHERE tier_id IS DISTINCT FROM fn_tier_for_points(member_point);
+  RETURN NULL;
+END $$;
+
+-- Statement-level: one resync per ladder change, not one per tier row.
+-- DELETE needs no resync: an unused tier is nobody's best match, and deleting
+-- a tier still in use is stopped by fk_customer_tier first.
+CREATE TRIGGER trg_member_tier_90_resync_customers
+  AFTER INSERT OR UPDATE OF min_point ON member_tier
+  FOR EACH STATEMENT EXECUTE FUNCTION fn_member_tier_resync_customers();

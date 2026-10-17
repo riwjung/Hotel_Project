@@ -1,6 +1,6 @@
 "use client";
 
-import { Col, Form, Input, InputNumber, Modal, Row, Select } from "antd";
+import { Col, Form, Input, InputNumber, Modal, Row, Typography } from "antd";
 import type { Customer, CustomerInput, MemberTier } from "./types";
 
 type Props = {
@@ -12,7 +12,10 @@ type Props = {
   onSubmit: (input: CustomerInput) => void;
 };
 
-/** The tier whose point threshold the customer has reached. */
+/**
+ * Preview of the tier the points reach (tiers sorted by minPoint). The database
+ * sets the real tier on save (rule R13); this only shows it before saving.
+ */
 export function tierForPoints(tiers: MemberTier[], points: number): MemberTier | undefined {
   return [...tiers].reverse().find((tier) => points >= tier.minPoint);
 }
@@ -20,7 +23,7 @@ export function tierForPoints(tiers: MemberTier[], points: number): MemberTier |
 export default function CustomerModal({ open, customer, tiers, saving, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm<CustomerInput>();
   const points = Form.useWatch("memberPoint", form);
-  const suggested = tierForPoints(tiers, points ?? 0);
+  const tier = tierForPoints(tiers, points ?? customer?.memberPoint ?? 0);
 
   const initialValues: Partial<CustomerInput> = customer
     ? {
@@ -30,10 +33,9 @@ export default function CustomerModal({ open, customer, tiers, saving, onCancel,
         phone: customer.phone,
         idCardNo: customer.idCardNo,
         address: customer.address,
-        tierId: customer.tierId,
         memberPoint: customer.memberPoint,
       }
-    : { memberPoint: 0, tierId: tiers[0]?.tierId };
+    : { memberPoint: 0 };
 
   const finish = (v: CustomerInput) =>
     onSubmit({
@@ -97,19 +99,21 @@ export default function CustomerModal({ open, customer, tiers, saving, onCancel,
               <Input maxLength={30} />
             </Form.Item>
           </Col>
-          <Col xs={12} sm={6}>
-            <Form.Item label="Member points" name="memberPoint" rules={[{ required: true, message: "Required" }]}>
-              <InputNumber min={0} precision={0} style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-          <Col xs={12} sm={6}>
+          <Col xs={24} sm={12}>
             <Form.Item
-              label="Tier"
-              name="tierId"
-              rules={[{ required: true, message: "Select a tier" }]}
-              extra={suggested ? `Points reach ${suggested.tierName}` : undefined}
+              label="Member points"
+              name="memberPoint"
+              rules={[{ required: true, message: "Required" }]}
+              extra={
+                tier && (
+                  <>
+                    Tier <Typography.Text strong>{tier.tierName}{tier.discountRate ? ` · ${tier.discountRate}% off` : ""}</Typography.Text>
+                    {" "}— set automatically from points
+                  </>
+                )
+              }
             >
-              <Select options={tiers.map((tier) => ({ value: tier.tierId, label: tier.tierName }))} />
+              <InputNumber min={0} precision={0} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col span={24}>

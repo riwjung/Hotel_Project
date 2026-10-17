@@ -19,10 +19,11 @@ date: 2026-10-10
 | booking_room.subtotal | price_per_night × night_count | 〃 |
 | booking_service.subtotal | unit_price × quantity | BEFORE ins/upd booking_service |
 | booking.room_total / service_total | Σ subtotal (ไม่นับ order CANCELLED) | AFTER ins/upd/del ของบรรทัด → `fn_recalc_booking()` |
-| booking.discount_amount | promotion PERCENT/FIXED ถ้า gross ≥ minimum_amount | BEFORE ins/upd booking |
+| booking.member_discount_rate | snapshot `member_tier.discount_rate` ของลูกค้าตอนจอง ([[ADR-006-member-tier-discount-and-derived-tier]]) | BEFORE ins/upd booking (`trg_booking_25_…`) |
+| booking.discount_amount | promotion PERCENT/FIXED ถ้า gross ≥ minimum_amount **+ member rate % ของยอดที่เหลือหลัง promotion** (`fn_booking_discounts`) | BEFORE ins/upd booking |
 | booking.grand_total | room + service − discount | 〃 |
 
-`price_per_night`, `unit_price` เป็น **snapshot** ราคา ณ วันจอง (ER ตั้งใจไว้) — ถ้าแอปไม่ส่งมา trigger ดึงจาก rate/branch price ให้
+`price_per_night`, `unit_price`, `member_discount_rate` เป็น **snapshot** ณ วันจอง (สองตัวแรก ER ตั้งใจไว้, ตัวสุดท้ายเพิ่มใน ADR-006) — ถ้าแอปไม่ส่งราคามา trigger ดึงจาก rate/branch price ให้
 
 ## เหตุผล (ใช้เขียนในรายงาน)
 1. **Snapshot ทางการเงิน** — ใบจองต้องแสดงยอดเดิมแม้ราคา/โปรเปลี่ยนภายหลัง; VIEW จะคำนวณใหม่จากราคาปัจจุบัน
@@ -31,7 +32,7 @@ date: 2026-10-10
 4. 3NF ถูก "ละเมิดโดยตั้งใจ" แบบมีกลไกกำกับ — อธิบายได้ว่าเป็น controlled denormalization
 
 ## ทดสอบ
-`npm run db:test` → เคส totals 4 ข้อ (ยอด BK-0001, เพิ่มบรรทัด, ยกเลิก order, เปลี่ยนวัน)
+`npm run db:test` → เคส totals (ยอด BK-0001 และ BK-0003 แบบมี member discount, เพิ่มบรรทัด, ยกเลิก order, เปลี่ยนวัน, snapshot อัตรา member)
 
 ## Open
-- [ ] ส่วนลด member tier ยังไม่รวมใน `discount_amount` — ต้องตัดสินใจว่า stack กับ promotion ไหม
+- [x] ส่วนลด member tier ซ้อนกับ promotion → ซ้อนได้ promotion ก่อน แล้ว tier% จากยอดที่เหลือ ([[ADR-006-member-tier-discount-and-derived-tier]], 2026-10-17)

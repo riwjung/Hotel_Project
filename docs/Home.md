@@ -11,7 +11,7 @@ Next.js 16 (Route Handlers) + Ant Design 6 + PostgreSQL 17 (raw SQL ผ่าน
 > เริ่มที่นี่ทุกครั้ง — ทั้งคนและ AI agent (CLAUDE.md ที่ root ชี้มาที่ไฟล์นี้)
 
 ## สถานะล่าสุด
-- [[2026-10-17-session-log|Session log 2026-10-17]] — R11 capacity / R12 min nights, QA `/bookings` + `/housekeeping` (แก้ bug check-in), Customers CRUD, Create booking
+- [[2026-10-17-session-log|Session log 2026-10-17]] — R11 capacity / R12 min nights, QA `/bookings` + `/housekeeping` (แก้ bug check-in), Customers CRUD, Create booking, R13 tier ตามแต้ม + ส่วนลด tier ซ้อน promotion; มีประเมินความคืบหน้า %
 - [[2026-10-11-session-log|Session log 2026-10-11]] — booking lifecycle + housekeeping พร้อม API integration test
 - [[2026-10-11-handoff-codex|Handoff → Codex 2026-10-11]] — สรุปทั้งหมดสำหรับ agent ที่ทำต่อ (เริ่มที่ Task 1: Bookings list)
 - [[2026-10-10-session-log|Session log 2026-10-10]] — skeleton เสร็จ, verify แล้ว
@@ -27,6 +27,7 @@ Next.js 16 (Route Handlers) + Ant Design 6 + PostgreSQL 17 (raw SQL ผ่าน
 - [[ADR-003-stored-totals-with-triggers]] — เก็บยอดรวม + trigger
 - [[ADR-004-staff-auth-jwt-cookie]] — login พนักงาน, permission
 - [[ADR-005-cache-components-off]] — ปิด cacheComponents เพราะ antd registry
+- [[ADR-006-member-tier-discount-and-derived-tier]] — ส่วนลด tier ซ้อน promotion (snapshot อัตรา) + tier ตามแต้มด้วย trigger
 
 ## Modules
 | | โมดูล | สถานะหน้าจอ |

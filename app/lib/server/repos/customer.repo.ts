@@ -9,8 +9,8 @@ import { query, queryOne, type Db } from "../db";
 const optionalText = (max: number) =>
   z.string().trim().max(max).nullish().transform((v) => (v ? v : null));
 
+// No tierId: the tier is derived from memberPoint by the database (R13).
 export const customerInputSchema = z.object({
-  tierId: z.number().int().positive(),
   firstName: z.string().trim().min(1).max(50),
   lastName: z.string().trim().min(1).max(50),
   email: z.string().trim().toLowerCase().max(100).pipe(z.email()),
@@ -25,6 +25,7 @@ const SELECT_CUSTOMER = `
     c.customer_id                 AS "customerId",
     c.tier_id                     AS "tierId",
     mt.tier_name                  AS "tierName",
+    mt.discount_rate              AS "discountRate",
     c.first_name                  AS "firstName",
     c.last_name                   AS "lastName",
     c.email,
@@ -65,7 +66,6 @@ export function listMemberTiers(): Promise<MemberTier[]> {
 }
 
 const values = (input: CustomerInput) => [
-  input.tierId,
   input.firstName,
   input.lastName,
   input.email,
@@ -75,10 +75,11 @@ const values = (input: CustomerInput) => [
   input.memberPoint,
 ];
 
+// tier_id is omitted: trg_customer_10_set_tier fills it from member_point (R13).
 export async function createCustomer(db: Db, input: CustomerInput): Promise<number> {
   const { rows } = await db.query<{ customerId: number }>(
-    `INSERT INTO customer (tier_id, first_name, last_name, email, phone, address, id_card_no, member_point)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO customer (first_name, last_name, email, phone, address, id_card_no, member_point)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING customer_id AS "customerId"`,
     values(input),
   );
@@ -88,8 +89,8 @@ export async function createCustomer(db: Db, input: CustomerInput): Promise<numb
 export async function updateCustomer(db: Db, id: number, input: CustomerInput): Promise<boolean> {
   const { rowCount } = await db.query(
     `UPDATE customer SET
-       tier_id = $2, first_name = $3, last_name = $4, email = $5, phone = $6,
-       address = $7, id_card_no = $8, member_point = $9
+       first_name = $2, last_name = $3, email = $4, phone = $5,
+       address = $6, id_card_no = $7, member_point = $8
      WHERE customer_id = $1`,
     [id, ...values(input)],
   );

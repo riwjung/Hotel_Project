@@ -218,6 +218,7 @@
 |  | `guest_count` | int |
 |  | `room_total` | decimal(12,2) |
 |  | `service_total` | decimal(12,2) |
+|  | `member_discount_rate` | decimal(5,2) — snapshot อัตรา tier ตอนจอง (เพิ่ม 2026-10-17, [[ADR-006-member-tier-discount-and-derived-tier]]) |
 |  | `discount_amount` | decimal(12,2) |
 |  | `grand_total` | decimal(12,2) |
 |  | `booking_channel` | varchar(20) |
@@ -488,7 +489,10 @@
 - **1NF** — ไม่มีช่องหลายค่า: amenities → ROOM_TYPE_AMENITY, ผู้เข้าพัก → GUEST, สิทธิ์ → ROLE_PERMISSION
 - **2NF** — ตาราง composite PK (ROLE_PERMISSION, ROOM_TYPE_AMENITY, EMPLOYEE_SERVICE_SKILL) คอลัมน์ที่เหลือขึ้นกับ key ทั้งคู่
 - **3NF** — แยก MEMBER_TIER; ATTENDANCE ไม่เก็บ employee_id (ได้จาก schedule_id); REVIEW ไม่เก็บ customer_id (ได้จาก booking_id)
-- **ตั้งใจเก็บซ้ำ (snapshot)** — `BOOKING_ROOM.price_per_night`, `BOOKING_SERVICE.unit_price` = ราคา ณ วันจอง
+- **ตั้งใจเก็บซ้ำ (snapshot)** — `BOOKING_ROOM.price_per_night`, `BOOKING_SERVICE.unit_price` = ราคา ณ วันจอง;
+  `BOOKING.member_discount_rate` = อัตราส่วนลด tier ณ วันจอง ([[ADR-006-member-tier-discount-and-derived-tier]])
+- **ค่า derive ที่เก็บไว้** — `CUSTOMER.tier_id` ขึ้นกับ `member_point` (ผ่าน ladder ใน MEMBER_TIER) จึงคุมด้วย trigger R13
+  แทนการให้แอปเขียน (controlled denormalization แบบเดียวกับยอดรวมใน [[ADR-003-stored-totals-with-triggers]])
 - **ต้องตัดสินใจ** — คอลัมน์คำนวณได้จากร่างเดิม (`room_total`, `service_total`, `grand_total`, `subtotal`, `night_count`): ลบแล้วทำ VIEW ถ้าตรวจ 3NF เข้ม หรือเก็บไว้พร้อมเหตุผลในรายงาน
 
 ## กฎที่ FK บังคับไม่ได้ (ทำตอน physical design)

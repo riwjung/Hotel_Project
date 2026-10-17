@@ -29,7 +29,8 @@ palette อยู่ใน `app/lib/status.tsx › BOOKING_STATUS` แล้ว
 | `/customers` | ✅ list/search/tier filter + create/edit/delete | `CUSTOMER_VIEW` / `CUSTOMER_MANAGE` |
 
 **Customer = ข้อมูลระดับเครือ** (`customer` ไม่มี `branch_id`) จึงไม่ใช้ `branchScope` — แขกคนเดียวกันใช้ได้ทุกสาขา
-ลบลูกค้าที่มี booking ไม่ได้ (FK → 409 `IN_USE`); tier เลือกเอง ฟอร์มแนะนำ tier ตามแต้ม (`min_point`)
+ลบลูกค้าที่มี booking ไม่ได้ (FK → 409 `IN_USE`); tier ตามแต้มอัตโนมัติ (R13 — ฟอร์มแก้ได้แค่แต้ม, แสดง tier ล่วงหน้า)
+ส่วนลด tier ซ้อนกับ promotion และถูก snapshot ลง `booking.member_discount_rate` ตอนจอง — [[ADR-006-member-tier-discount-and-derived-tier]]
 
 ## วิธีเขียน status change (สำคัญ)
 ```ts

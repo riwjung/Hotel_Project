@@ -25,7 +25,18 @@ export default function CustomerTable({ customers, loading, canManage, onEdit, o
       defaultSortOrder: "ascend",
       render: (_, r) => <Typography.Text strong>{r.firstName} {r.lastName}</Typography.Text>,
     },
-    { title: "Tier", dataIndex: "tierName", sorter: sortNumber<Customer>((r) => r.tierId) },
+    {
+      title: "Tier",
+      dataIndex: "tierName",
+      // the tier follows the points (R13), so points give the tier order
+      sorter: sortNumber<Customer>((r) => r.memberPoint),
+      render: (value: string, r) => (
+        <>
+          {value}
+          {r.discountRate > 0 && <Typography.Text type="secondary"> · {r.discountRate}% off</Typography.Text>}
+        </>
+      ),
+    },
     {
       title: "Points",
       dataIndex: "memberPoint",

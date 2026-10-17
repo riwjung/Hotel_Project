@@ -57,6 +57,7 @@ export default function BookingCreatePage() {
   const [saving, setSaving] = useState(false);
 
   const pickedBranch = Form.useWatch("branchId", form);
+  const customerId = Form.useWatch("customerId", form);
   const stay = Form.useWatch("stay", form);
   const guestCount = Form.useWatch("guestCount", form) ?? 1;
   const branchId = chainWide ? pickedBranch : (user?.branchId ?? undefined);
@@ -66,6 +67,7 @@ export default function BookingCreatePage() {
   const ready = Boolean(branchId && checkIn && checkOut && nights > 0);
 
   const customers = useApiData(fetchCustomers, "booking-customers");
+  const customer = customers.data?.find((c) => c.customerId === customerId);
   const tiers = useApiData(
     (signal) => (canAddCustomer ? fetchMemberTiers(signal) : Promise.resolve([])),
     `booking-tiers:${canAddCustomer}`,
@@ -240,7 +242,17 @@ export default function BookingCreatePage() {
               items={[
                 { key: "rooms", label: "Rooms", children: selectedRooms.map((r) => r.roomNumber).join(", ") || "—" },
                 { key: "sleeps", label: "Sleeps / guests", children: `${capacity} / ${guestCount}` },
-                { key: "total", label: "Room total (before discount)", children: formatMoney(roomTotal) },
+                { key: "total", label: "Room total (before discounts)", children: formatMoney(roomTotal) },
+                {
+                  key: "member",
+                  label: "Member discount",
+                  span: "filled",
+                  children: !customer
+                    ? "—"
+                    : customer.discountRate > 0
+                      ? `${customer.tierName} · ${customer.discountRate}% off, applied after any promotion`
+                      : `${customer.tierName} · no member discount`,
+                },
               ]}
             />
             {overCapacity && (

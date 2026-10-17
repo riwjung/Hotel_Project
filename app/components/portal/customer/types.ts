@@ -10,8 +10,11 @@ export type MemberTier = {
 
 export type Customer = {
   customerId: number;
+  /** derived from memberPoint by the database (rule R13) */
   tierId: number;
   tierName: string;
+  /** the tier's discount_rate (percent), applied after any promotion */
+  discountRate: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -27,9 +30,8 @@ export type Customer = {
   lastStayDate: string | null;
 };
 
-/** Body of POST /api/customers and PATCH /api/customers/:id */
+/** Body of POST /api/customers and PATCH /api/customers/:id — no tier: it follows memberPoint */
 export type CustomerInput = {
-  tierId: number;
   firstName: string;
   lastName: string;
   email: string;

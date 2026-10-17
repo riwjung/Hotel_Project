@@ -3,12 +3,13 @@
 -- customer, booking, booking_room, guest, booking_status_log
 -- Totals (room_total, service_total, discount_amount, grand_total, subtotal,
 -- night_count) are stored and maintained by triggers — see ADR-003 and
--- 085_totals_triggers.sql. price_per_night is an intentional snapshot.
+-- 085_totals_triggers.sql. price_per_night and member_discount_rate are
+-- intentional snapshots (ADR-006).
 -- =====================================================================
 
 CREATE TABLE customer (
   customer_id    integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  tier_id        integer      NOT NULL,
+  tier_id        integer      NOT NULL,                -- derived from member_point by trigger (R13, 080)
   first_name     varchar(50)  NOT NULL,
   last_name      varchar(50)  NOT NULL,
   phone          varchar(20),
@@ -50,7 +51,8 @@ CREATE TABLE booking (
   guest_count        integer       NOT NULL DEFAULT 1,
   room_total         decimal(12,2) NOT NULL DEFAULT 0,
   service_total      decimal(12,2) NOT NULL DEFAULT 0,
-  discount_amount    decimal(12,2) NOT NULL DEFAULT 0,
+  member_discount_rate decimal(5,2) NOT NULL DEFAULT 0,  -- snapshot of the customer's tier rate when booked (085)
+  discount_amount    decimal(12,2) NOT NULL DEFAULT 0,   -- promotion + member discount
   grand_total        decimal(12,2) NOT NULL DEFAULT 0,
   booking_channel    varchar(20)   NOT NULL DEFAULT 'WALK_IN',
   booking_status     varchar(20)   NOT NULL DEFAULT 'PENDING',
@@ -60,6 +62,7 @@ CREATE TABLE booking (
   CONSTRAINT ck_booking_totals CHECK (
     room_total >= 0 AND service_total >= 0 AND discount_amount >= 0 AND grand_total >= 0
   ),
+  CONSTRAINT ck_booking_member_rate CHECK (member_discount_rate BETWEEN 0 AND 100),
   CONSTRAINT ck_booking_channel CHECK (booking_channel IN ('WALK_IN', 'WEBSITE', 'PHONE', 'OTA')),
   CONSTRAINT ck_booking_status CHECK (
     booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW')
