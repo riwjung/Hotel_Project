@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, Card, Checkbox, Col, Form, Input, Modal, Row, Space, Typography } from "antd";
+import { Button, Card, Col, Form, Input, Modal, Row, Space, Typography } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import type { BookingDetail, CheckInInput } from "./types";
+import type { BookingDetail, BookingRoomDetail, CheckInInput } from "./types";
 
 type Props = {
   open: boolean;
@@ -12,25 +12,44 @@ type Props = {
   onSubmit: (input: CheckInInput) => void;
 };
 
+// Room ids and the primary flag are not form fields: nested Form.List items with
+// preserve={false} lose their values on StrictMode's dev remount, so a hidden
+// bookingRoomId field arrives empty. They are rebuilt from booking.rooms on submit.
+type GuestValues = Omit<CheckInInput["rooms"][number]["guests"][number], "isPrimary">;
+type FormValues = { rooms: Array<{ keyCardNo: string; guests?: GuestValues[] }> };
+
+/** One primary guest per room, then fill the rest room by room up to each room's capacity. */
+function initialGuestCounts(rooms: BookingRoomDetail[], guestCount: number): number[] {
+  let remaining = guestCount - rooms.length;
+  return rooms.map((room) => {
+    const extra = Math.max(0, Math.min(room.capacity - 1, remaining));
+    remaining -= extra;
+    return 1 + extra;
+  });
+}
+
 export default function CheckInModal({ open, booking, saving, onCancel, onSubmit }: Props) {
-  const [form] = Form.useForm<CheckInInput>();
-  const initialValues: CheckInInput = {
-    rooms: booking.rooms.map((room, roomIndex) => {
-      const roomGuestCount = roomIndex === 0
-        ? Math.max(1, booking.guestCount - (booking.rooms.length - 1))
-        : 1;
-      return {
+  const [form] = Form.useForm<FormValues>();
+  const watchedRooms = Form.useWatch("rooms", form);
+  const entered = (watchedRooms ?? []).reduce((sum, room) => sum + (room?.guests?.length ?? 0), 0);
+  const counts = initialGuestCounts(booking.rooms, booking.guestCount);
+  const initialValues: FormValues = {
+    rooms: booking.rooms.map((room, roomIndex) => ({
+      keyCardNo: room.keyCardNo ?? "",
+      guests: Array.from({ length: counts[roomIndex] }, () => ({ fullName: "", idCardNo: null, nationality: null })),
+    })),
+  };
+  const finish = (values: FormValues) =>
+    onSubmit({
+      rooms: booking.rooms.map((room, roomIndex) => ({
         bookingRoomId: room.bookingRoomId,
-        keyCardNo: room.keyCardNo ?? "",
-        guests: Array.from({ length: roomGuestCount }, (_, guestIndex) => ({
-          fullName: "",
-          idCardNo: null,
-          nationality: null,
+        keyCardNo: values.rooms[roomIndex].keyCardNo,
+        guests: (values.rooms[roomIndex].guests ?? []).map((guest, guestIndex) => ({
+          ...guest,
           isPrimary: guestIndex === 0,
         })),
-      };
-    }),
-  };
+      })),
+    });
 
   return (
     <Modal
@@ -44,22 +63,29 @@ export default function CheckInModal({ open, booking, saving, onCancel, onSubmit
       width={820}
     >
       <Typography.Paragraph type="secondary">
-        Enter exactly {booking.guestCount} guest(s). Each room must keep one primary guest.
+        Enter exactly {booking.guestCount} guest(s) — {entered} entered. Each room keeps one primary guest and
+        cannot take more guests than it sleeps.
       </Typography.Paragraph>
-      <Form<CheckInInput>
+      <Form<FormValues>
         form={form}
         layout="vertical"
         preserve={false}
         initialValues={initialValues}
-        onFinish={onSubmit}
+        onFinish={finish}
         disabled={saving}
       >
         <Form.List name="rooms">
           {(roomFields) => roomFields.map((roomField, roomIndex) => {
             const room = booking.rooms[roomIndex];
             return (
-              <Card key={roomField.key} size="small" variant="outlined" title={`Room ${room.roomNumber}`} style={{ marginBottom: 12 }}>
-                <Form.Item name={[roomField.name, "bookingRoomId"]} hidden><Input /></Form.Item>
+              <Card
+                key={roomField.key}
+                size="small"
+                variant="outlined"
+                title={`Room ${room.roomNumber} · ${room.typeName}`}
+                extra={<Typography.Text type="secondary">Sleeps {room.capacity}</Typography.Text>}
+                style={{ marginBottom: 12 }}
+              >
                 <Form.Item
                   name={[roomField.name, "keyCardNo"]}
                   label="Key card number"
@@ -92,17 +118,19 @@ export default function CheckInModal({ open, booking, saving, onCancel, onSubmit
                             </Form.Item>
                           </Col>
                           <Col xs={2} sm={2}>
-                            <Form.Item name={[guestField.name, "isPrimary"]} valuePropName="checked" hidden>
-                              <Checkbox />
-                            </Form.Item>
                             {guestIndex > 0 && (
                               <Button danger type="text" aria-label="Remove guest" icon={<DeleteOutlined />} onClick={() => remove(guestField.name)} />
                             )}
                           </Col>
                         </Row>
                       ))}
-                      <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ isPrimary: false })}>
-                        Add guest to this room
+                      <Button
+                        type="dashed"
+                        icon={<PlusOutlined />}
+                        disabled={guestFields.length >= room.capacity}
+                        onClick={() => add({ fullName: "", idCardNo: null, nationality: null })}
+                      >
+                        {guestFields.length >= room.capacity ? `Room is full (${room.capacity})` : "Add guest to this room"}
                       </Button>
                     </Space>
                   )}

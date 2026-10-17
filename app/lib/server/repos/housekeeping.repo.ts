@@ -64,7 +64,12 @@ export async function updateHousekeepingStatus(
       `UPDATE housekeeping_task SET task_status = 'VERIFIED', verified_by_emp_id = $2 WHERE task_id = $1`,
       [id, employeeId],
     );
-    await db.query(`UPDATE room SET room_status = 'AVAILABLE' WHERE room_id = $1`, [task.roomId]);
+    // Only a room waiting for this clean is released. A stay-over clean of an
+    // occupied room must not make it bookable while the guest is still in.
+    await db.query(
+      `UPDATE room SET room_status = 'AVAILABLE' WHERE room_id = $1 AND room_status = 'CLEANING'`,
+      [task.roomId],
+    );
   }
 }
 

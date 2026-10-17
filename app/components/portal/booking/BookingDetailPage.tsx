@@ -86,6 +86,7 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
   const roomColumns: TableColumnsType<BookingRoomDetail> = [
     { title: "Room", dataIndex: "roomNumber", sorter: sortText<BookingRoomDetail>((row) => row.roomNumber) },
     { title: "Type", dataIndex: "typeName", sorter: sortText<BookingRoomDetail>((row) => row.typeName) },
+    { title: "Sleeps", dataIndex: "capacity", align: "right", sorter: sortNumber<BookingRoomDetail>((row) => row.capacity) },
     { title: "Rate", dataIndex: "rateName", sorter: sortText<BookingRoomDetail>((row) => row.rateName) },
     { title: "Nightly", dataIndex: "pricePerNight", align: "right", sorter: sortNumber<BookingRoomDetail>((row) => row.pricePerNight), render: formatMoney },
     { title: "Nights", dataIndex: "nightCount", align: "right", sorter: sortNumber<BookingRoomDetail>((row) => row.nightCount) },
@@ -193,7 +194,7 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
         <Timeline
           items={booking.statusLog.map((entry) => ({
             color: BOOKING_STATUS[entry.toStatus].color,
-            children: (
+            content: (
               <>
                 <Typography.Text strong>{BOOKING_STATUS[entry.toStatus].label}</Typography.Text>
                 <br />
@@ -222,6 +223,7 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
       <CheckOutModal
         open={checkOutOpen}
         assignees={booking.housekeepingAssignees}
+        balance={booking.balance}
         saving={saving}
         onCancel={() => setCheckOutOpen(false)}
         onSubmit={(input: CheckOutInput) => void run(() => checkOutBooking(bookingId, input), "Guest checked out and cleaning tasks created", () => setCheckOutOpen(false))}

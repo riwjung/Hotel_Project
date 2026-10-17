@@ -39,10 +39,12 @@ room.room_status = AVAILABLE
 
 - ทุก query ที่เป็นข้อมูลสาขาต้องรับ `branchScope(session)`; query-string filter ห้ามขยาย scope
 - ทุก write อยู่ใน `withTx()` จึง rollback ทั้งชุดเมื่อขั้นตอนใดขั้นตอนหนึ่งล้มเหลว
-- check-in: ห้องทุกห้องต้อง `AVAILABLE`, payload ต้องมี booking room ครบ และ guest รวมต้องเท่ากับ `booking.guest_count`
-- payment: lock booking ก่อนรวมยอด และปฏิเสธจำนวนที่เกิน balance
+- check-in: ห้องทุกห้องต้อง `AVAILABLE`, payload ต้องมี booking room ครบ และ guest รวมต้องเท่ากับ `booking.guest_count`;
+  DB rule R11 ปฏิเสธ guest ที่เกิน `room_type.capacity` ของห้องนั้น (ทั้ง transaction rollback)
+- payment: lock booking ก่อนรวมยอด, ปฏิเสธจำนวนที่เกิน balance และ booking ที่ CANCELLED / NO_SHOW
 - check-out: ตรวจ assignee ว่า active และอยู่สาขาเดียวกับ booking ก่อนสร้าง task
-- verify: ผู้ตรวจต้องไม่ใช่ `assigned_emp_id`; สำเร็จแล้วห้องกลับ `AVAILABLE`
+- verify: ผู้ตรวจต้องไม่ใช่ `assigned_emp_id`; สำเร็จแล้วห้องที่เป็น `CLEANING` กลับเป็น `AVAILABLE`
+  (stay-over clean ของห้องที่ยังมีแขกอยู่ ห้องยัง `OCCUPIED`)
 
 ## PR review questions
 

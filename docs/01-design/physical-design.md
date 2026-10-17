@@ -18,7 +18,7 @@ updated: 2026-10-10
 | `060_e_services.sql` | service_category, service, branch_service, booking_service, service_assignment, employee_service_skill |
 | `070_f_operations.sql` | housekeeping_task, maintenance_request |
 | `075_g_transactions.sql` | payment, review |
-| `080_business_rules.sql` | R1–R10 (ด้านล่าง) |
+| `080_business_rules.sql` | R1–R12 (ด้านล่าง) |
 | `085_totals_triggers.sql` | ยอดรวม — [[ADR-003-stored-totals-with-triggers]] |
 | `090_views.sql` | `v_dashboard_branch_today`, `v_booking_overview` |
 
@@ -82,14 +82,17 @@ updated: 2026-10-10
 | R8 | promotion ต้อง ACTIVE, อยู่ในช่วงวัน, ยังไม่เกิน usage_limit | trigger |
 | R9 | ทุกการเปลี่ยนสถานะ booking → `booking_status_log` พร้อมผู้ทำ | trigger AFTER; actor จาก `current_setting('app.emp_id')` ที่ `withTx()` ตั้ง |
 | R10 | review ได้เฉพาะ booking ที่ CHECKED_OUT | trigger |
+| R11 | ผู้เข้าพักต้องไม่เกินความจุห้อง: (a) แถว `guest` ต่อห้อง ≤ `room_type.capacity` (b) `booking.guest_count` ≤ Σ capacity ของทุกห้องใน booking | (a) trigger BEFORE บน `guest` + `FOR UPDATE` แถว booking_room กัน race · (b) **`CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`** ตรวจตอน COMMIT เพราะ booking ถูก insert ก่อนห้อง (4 คน 2 ห้อง × 2 จะ "เกิน" หลังห้องแรก) — booking ที่ยังไม่มีห้องข้ามไป |
+| R12 | จำนวนคืนต้อง ≥ `room_rate.min_nights` (ส่วน min_nights ≥ 1 คือ CHECK `ck_room_rate_min_nights`) | trigger BEFORE บน `booking_room`; การย่อวันของ booking ถูกจับด้วยเพราะ touch-lines ยิง trigger ซ้ำ |
 
-เมื่อเปลี่ยนวัน/สาขาของ booking → trigger "touch" แถว booking_room/booking_service → R3/R4 ถูกตรวจซ้ำ + คิด night_count ใหม่อัตโนมัติ
+เมื่อเปลี่ยนวัน/สาขาของ booking → trigger "touch" แถว booking_room/booking_service → R3/R4/R12 ถูกตรวจซ้ำ + คิด night_count ใหม่อัตโนมัติ
 
-ทดสอบทั้งหมด: `npm run db:test` (20 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK)
+ทดสอบทั้งหมด: `npm run db:test` (26 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK;
+เทสต์ของ R11b ใช้ `SET CONSTRAINTS … IMMEDIATE` บังคับให้ deferred trigger ทำงานก่อน ROLLBACK)
 
 ## ยังไม่ได้บังคับ (backlog)
-- [ ] `room_rate.min_nights` เทียบกับจำนวนคืนจริง
-- [ ] `guest` จำนวนคนต่อห้อง ≤ `room_type.capacity`
+- [x] `room_rate.min_nights` เทียบกับจำนวนคืนจริง → R12 (2026-10-17)
+- [x] `guest` จำนวนคนต่อห้อง ≤ `room_type.capacity` → R11 (2026-10-17)
 - [ ] พนักงานที่ assign ต้องอยู่สาขาเดียวกับ booking
 - [ ] ส่วนลด member tier (ตอนนี้ `discount_amount` = promotion อย่างเดียว — ดู ADR-003)
 - [ ] เปลี่ยน room_status อัตโนมัติตอน check-in/out

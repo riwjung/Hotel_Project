@@ -130,6 +130,9 @@ export async function recordPayment(
   input: PaymentInput,
 ) {
   const booking = await lockBooking(db, id, scope);
+  if (booking.bookingStatus === "CANCELLED" || booking.bookingStatus === "NO_SHOW") {
+    throw new HttpError(422, "INVALID_STATUS", "Payments cannot be recorded for a cancelled or no-show booking");
+  }
   const { rows } = await db.query<{ paidTotal: number }>(
     `SELECT COALESCE(sum(CASE WHEN payment_type = 'REFUND' THEN -amount ELSE amount END)
        FILTER (WHERE payment_status IN ('PAID', 'REFUNDED')), 0) AS "paidTotal"

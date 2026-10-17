@@ -292,3 +292,115 @@ END $$;
 CREATE TRIGGER trg_review_10_check_booking
   BEFORE INSERT OR UPDATE OF booking_id ON review
   FOR EACH ROW EXECUTE FUNCTION fn_review_check_booking();
+
+
+-- ---------------------------------------------------------------------
+-- R11 · Guests must fit the rooms (room_type.capacity)
+--      a) GUEST rows of one booked room ≤ that room type's capacity
+--         (checked per row; the booked-room line is locked FOR UPDATE so two
+--         concurrent check-ins into the same room are serialized)
+--      b) BOOKING.guest_count ≤ Σ capacity of all its rooms
+--         A booking is inserted before its rooms, and a 4-guest booking of two
+--         2-person rooms is "over capacity" after the first room. So (b) is a
+--         DEFERRABLE INITIALLY DEFERRED constraint trigger: it runs at COMMIT,
+--         once every room is in. Bookings with no rooms yet are skipped.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_guest_check_capacity() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_capacity  room_type.capacity%TYPE;
+  v_room      room.room_number%TYPE;
+  v_others    integer;
+BEGIN
+  SELECT rt.capacity, r.room_number INTO v_capacity, v_room
+  FROM booking_room br
+  JOIN room r       ON r.room_id = br.room_id
+  JOIN room_type rt ON rt.room_type_id = r.room_type_id
+  WHERE br.booking_room_id = NEW.booking_room_id
+  FOR UPDATE OF br;
+
+  SELECT count(*) INTO v_others
+  FROM guest
+  WHERE booking_room_id = NEW.booking_room_id
+    AND guest_id <> NEW.guest_id;
+
+  IF v_others + 1 > v_capacity THEN
+    RAISE EXCEPTION 'Room % holds at most % guest(s)', v_room, v_capacity;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_guest_10_check_capacity
+  BEFORE INSERT OR UPDATE OF booking_room_id ON guest
+  FOR EACH ROW EXECUTE FUNCTION fn_guest_check_capacity();
+
+CREATE FUNCTION fn_assert_booking_capacity(p_booking_id integer) RETURNS void
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_code      booking.booking_code%TYPE;
+  v_guests    integer;
+  v_rooms     integer;
+  v_capacity  integer;
+BEGIN
+  SELECT b.booking_code, b.guest_count, count(br.booking_room_id), COALESCE(sum(rt.capacity), 0)
+    INTO v_code, v_guests, v_rooms, v_capacity
+  FROM booking b
+  LEFT JOIN booking_room br ON br.booking_id = b.booking_id
+  LEFT JOIN room r          ON r.room_id = br.room_id
+  LEFT JOIN room_type rt    ON rt.room_type_id = r.room_type_id
+  WHERE b.booking_id = p_booking_id
+  GROUP BY b.booking_id;
+
+  IF v_rooms > 0 AND v_guests > v_capacity THEN
+    RAISE EXCEPTION 'Booking % has % guest(s) but its room(s) hold only %',
+      v_code, v_guests, v_capacity;
+  END IF;
+END $$;
+
+CREATE FUNCTION fn_booking_check_capacity() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP <> 'INSERT' THEN
+    PERFORM fn_assert_booking_capacity(OLD.booking_id);
+  END IF;
+  IF TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND NEW.booking_id <> OLD.booking_id) THEN
+    PERFORM fn_assert_booking_capacity(NEW.booking_id);
+  END IF;
+  RETURN NULL;
+END $$;
+
+CREATE CONSTRAINT TRIGGER trg_booking_95_check_capacity
+  AFTER INSERT OR UPDATE OF guest_count ON booking
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION fn_booking_check_capacity();
+
+CREATE CONSTRAINT TRIGGER trg_booking_room_95_check_capacity
+  AFTER INSERT OR UPDATE OF booking_id, room_id OR DELETE ON booking_room
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION fn_booking_check_capacity();
+
+
+-- ---------------------------------------------------------------------
+-- R12 · A stay must be at least the rate's min_nights
+--      (min_nights ≥ 1 itself is the CHECK ck_room_rate_min_nights)
+--      Runs on every booking_room write, and booking date changes touch the
+--      lines (085 › fn_booking_touch_lines), so shortening a stay is caught too.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_booking_room_check_min_nights() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_nights  integer;
+  v_rate    room_rate%ROWTYPE;
+BEGIN
+  SELECT check_out_date - check_in_date INTO v_nights FROM booking WHERE booking_id = NEW.booking_id;
+  SELECT * INTO v_rate FROM room_rate WHERE rate_id = NEW.rate_id;
+
+  IF v_nights < v_rate.min_nights THEN
+    RAISE EXCEPTION 'Rate "%" requires a stay of at least % night(s)', v_rate.rate_name, v_rate.min_nights;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_booking_room_15_check_min_nights
+  BEFORE INSERT OR UPDATE ON booking_room
+  FOR EACH ROW EXECUTE FUNCTION fn_booking_room_check_min_nights();

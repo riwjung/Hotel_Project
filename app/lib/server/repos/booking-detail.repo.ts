@@ -43,7 +43,7 @@ export async function getBookingDetail(id: number, scope: number | null): Promis
     query<BookingRoomDetail>(
       `SELECT br.booking_room_id AS "bookingRoomId", r.room_id AS "roomId",
          r.room_number AS "roomNumber", r.room_name AS "roomName", rt.type_name AS "typeName",
-         rr.rate_name AS "rateName", br.price_per_night AS "pricePerNight",
+         rt.capacity, rr.rate_name AS "rateName", br.price_per_night AS "pricePerNight",
          br.night_count AS "nightCount", br.subtotal,
          br.actual_check_in AS "actualCheckIn", br.actual_check_out AS "actualCheckOut",
          br.key_card_no AS "keyCardNo"

@@ -47,7 +47,8 @@ export default function HousekeepingPage() {
     }
     modal.confirm({
       title: `Verify cleaning for room ${task.roomNumber}?`,
-      content: "This completes the task and makes the room Available. The final status cannot be reversed.",
+      content:
+        "This completes the task. A room waiting for cleaning becomes Available; an occupied room stays occupied. The final status cannot be reversed.",
       okText: "Verify task",
       okButtonProps: { danger: true },
       onOk: () => advance(task, toStatus),

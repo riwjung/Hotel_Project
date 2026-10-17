@@ -44,6 +44,9 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const CHECK_MESSAGES: Record<string, string> = {
   ck_branch_status: "Unknown branch status",
   ck_booking_dates: "Check-out must be after check-in",
+  ck_booking_guest_count: "A booking needs at least one guest",
+  ck_room_rate_min_nights: "Minimum stay must be at least 1 night",
+  ck_customer_point: "Member points cannot be negative",
   ck_room_rate_dates: "End date must be on or after start date",
   ck_promotion_dates: "End date must be on or after start date",
 };

@@ -1,17 +1,19 @@
 "use client";
 
-import { Form, Input, Modal, Select } from "antd";
+import { Alert, Form, Input, Modal, Select } from "antd";
+import { formatMoney } from "@/app/lib/format";
 import type { CheckOutInput, EmployeeOption } from "./types";
 
 type Props = {
   open: boolean;
   assignees: EmployeeOption[];
+  balance: number;
   saving: boolean;
   onCancel: () => void;
   onSubmit: (input: CheckOutInput) => void;
 };
 
-export default function CheckOutModal({ open, assignees, saving, onCancel, onSubmit }: Props) {
+export default function CheckOutModal({ open, assignees, balance, saving, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm<CheckOutInput>();
   return (
     <Modal
@@ -23,6 +25,15 @@ export default function CheckOutModal({ open, assignees, saving, onCancel, onSub
       onCancel={onCancel}
       destroyOnHidden
     >
+      {balance > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title={`Outstanding balance ${formatMoney(balance)}`}
+          description="Record the payment first unless the guest settles later."
+        />
+      )}
       <Form<CheckOutInput>
         form={form}
         layout="vertical"

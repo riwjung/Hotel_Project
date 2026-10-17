@@ -305,3 +305,102 @@ BEGIN
     RAISE EXCEPTION 'FAIL: nights=% subtotal=%', br.night_count, br.subtotal;
   END IF;
 END $$;
+
+-- R11 · a room cannot hold more guest rows than its room type's capacity -----
+-- BK-0002 holds room 101 (Standard, capacity 2) and has no guests recorded yet.
+DO $$
+DECLARE
+  v_room_line integer := (
+    SELECT br.booking_room_id FROM booking_room br
+    JOIN booking b ON b.booking_id = br.booking_id
+    WHERE b.booking_code = 'BK-0002'
+  );
+BEGIN
+  INSERT INTO guest (booking_room_id, full_name, is_primary)
+  VALUES (v_room_line, 'Guest One', true), (v_room_line, 'Guest Two', false);
+
+  BEGIN
+    INSERT INTO guest (booking_room_id, full_name) VALUES (v_room_line, 'Guest Three');
+    RAISE EXCEPTION 'FAIL: a third guest in a 2-person room was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R11 guest over room capacity rejected — %', SQLERRM;
+  END;
+END $$;
+
+-- R11 · booking.guest_count must fit the total capacity of its rooms --------
+-- Checked by a DEFERRED constraint trigger at COMMIT; SET CONSTRAINTS … IMMEDIATE
+-- forces the check now so the test can catch it.
+DO $$
+BEGIN
+  BEGIN
+    UPDATE booking SET guest_count = 3 WHERE booking_code = 'BK-0002';          -- one Standard room (2)
+    SET CONSTRAINTS trg_booking_95_check_capacity IMMEDIATE;
+    RAISE EXCEPTION 'FAIL: 3 guests in one 2-person room was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R11 guest_count over total capacity rejected — %', SQLERRM;
+  END;
+  SET CONSTRAINTS trg_booking_95_check_capacity DEFERRED;
+END $$;
+
+-- R11 · deferral lets a 4-guest booking be built one room at a time (2 + 2) --
+DO $$
+DECLARE
+  v_booking integer;
+  v_in      date := (SELECT check_out_date FROM booking WHERE booking_code = 'BK-0001') + 30;
+BEGIN
+  INSERT INTO booking (booking_code, customer_id, branch_id, check_in_date, check_out_date, guest_count)
+  VALUES ('BK-T006', 2, 1, v_in, v_in + 2, 4)
+  RETURNING booking_id INTO v_booking;
+  INSERT INTO booking_room (booking_id, room_id, rate_id) VALUES (v_booking, 1, 1);  -- Standard, 2
+  INSERT INTO booking_room (booking_id, room_id, rate_id) VALUES (v_booking, 2, 1);  -- Standard, 2
+  SET CONSTRAINTS trg_booking_95_check_capacity, trg_booking_room_95_check_capacity IMMEDIATE;
+  SET CONSTRAINTS trg_booking_95_check_capacity, trg_booking_room_95_check_capacity DEFERRED;
+  RAISE NOTICE 'PASS: R11 4 guests across two 2-person rooms accepted at commit';
+END $$;
+
+-- R12 · rate min_nights itself must be at least 1 night -------------------
+DO $$
+BEGIN
+  BEGIN
+    INSERT INTO room_rate (branch_id, room_type_id, rate_name, start_date, end_date, price_per_night, min_nights, rate_status)
+    VALUES (1, 1, 'Zero-night rate', current_date, current_date + 5, 999, 0, 'INACTIVE');
+    RAISE EXCEPTION 'FAIL: min_nights 0 was accepted';
+  EXCEPTION WHEN check_violation THEN
+    RAISE NOTICE 'PASS: R12 min_nights below 1 rejected (23514)';
+  END;
+END $$;
+
+-- R12 · a stay shorter than the rate's min_nights is rejected ---------------
+-- Rate 4 (BKK Suite rack rate) requires 2 nights; room 7 is the BKK Suite.
+DO $$
+DECLARE
+  v_booking integer;
+  v_in      date := (SELECT check_out_date FROM booking WHERE booking_code = 'BK-0001') + 40;
+BEGIN
+  INSERT INTO booking (booking_code, customer_id, branch_id, check_in_date, check_out_date)
+  VALUES ('BK-T007', 2, 1, v_in, v_in + 1)
+  RETURNING booking_id INTO v_booking;
+
+  BEGIN
+    INSERT INTO booking_room (booking_id, room_id, rate_id) VALUES (v_booking, 7, 4);
+    RAISE EXCEPTION 'FAIL: 1 night on a 2-night minimum rate was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R12 stay below min_nights rejected — %', SQLERRM;
+  END;
+
+  -- 2 nights is fine …
+  UPDATE booking SET check_out_date = v_in + 2 WHERE booking_id = v_booking;
+  INSERT INTO booking_room (booking_id, room_id, rate_id) VALUES (v_booking, 7, 4);
+
+  -- … but shortening it back to 1 night afterwards is caught too
+  BEGIN
+    UPDATE booking SET check_out_date = v_in + 1 WHERE booking_id = v_booking;
+    RAISE EXCEPTION 'FAIL: shortening below min_nights was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R12 shortening below min_nights rejected — %', SQLERRM;
+  END;
+END $$;

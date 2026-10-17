@@ -52,6 +52,8 @@ export type BookingRoomDetail = {
   roomNumber: string;
   roomName: string | null;
   typeName: string;
+  /** room_type.capacity — max guests in this room (DB rule R11) */
+  capacity: number;
   rateName: string;
   pricePerNight: number;
   nightCount: number;
