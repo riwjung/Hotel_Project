@@ -1,5 +1,9 @@
 import { api } from "@/app/lib/api-client";
 import type {
+  AvailabilityFilter,
+  AvailableRoom,
+  BookingCreated,
+  BookingCreateInput,
   BookingDetail,
   BookingFilter,
   BookingListItem,
@@ -11,6 +15,14 @@ import type {
 
 export function fetchBookings(filter: BookingFilter, signal?: AbortSignal) {
   return api<BookingListItem[]>("/api/bookings", { params: filter, signal });
+}
+
+export function fetchAvailableRooms(filter: AvailabilityFilter, signal?: AbortSignal) {
+  return api<AvailableRoom[]>("/api/bookings/availability", { params: filter, signal });
+}
+
+export function createBooking(input: BookingCreateInput) {
+  return api<BookingCreated>("/api/bookings", { method: "POST", body: input });
 }
 
 export function fetchBooking(id: number, signal?: AbortSignal) {

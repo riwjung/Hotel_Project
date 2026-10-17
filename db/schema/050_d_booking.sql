@@ -24,9 +24,22 @@ CREATE TABLE customer (
 );
 CREATE INDEX ix_customer_tier ON customer (tier_id);
 
+-- Booking codes BK-0001, BK-0002 … come from their own sequence, so two desks
+-- creating bookings at once never compute the same "max + 1".
+-- 190_sync_identity.sql moves it past the seeded codes.
+CREATE SEQUENCE booking_code_seq;
+
+CREATE FUNCTION fn_next_booking_code() RETURNS varchar
+LANGUAGE plpgsql AS $fn$
+DECLARE
+  v bigint := nextval('booking_code_seq');
+BEGIN
+  RETURN 'BK-' || lpad(v::text, greatest(4, length(v::text)), '0');
+END $fn$;
+
 CREATE TABLE booking (
   booking_id         integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  booking_code       varchar(20)   NOT NULL,
+  booking_code       varchar(20)   NOT NULL DEFAULT fn_next_booking_code(),
   customer_id        integer       NOT NULL,
   branch_id          integer       NOT NULL,
   promotion_id       integer,
@@ -56,6 +69,7 @@ CREATE TABLE booking (
   CONSTRAINT fk_booking_promotion FOREIGN KEY (promotion_id) REFERENCES promotion (promotion_id),
   CONSTRAINT fk_booking_created_by FOREIGN KEY (created_by_emp_id) REFERENCES employee (employee_id)
 );
+ALTER SEQUENCE booking_code_seq OWNED BY booking.booking_code;
 CREATE INDEX ix_booking_customer ON booking (customer_id);
 CREATE INDEX ix_booking_branch_dates ON booking (branch_id, check_in_date, check_out_date);
 CREATE INDEX ix_booking_promotion ON booking (promotion_id);

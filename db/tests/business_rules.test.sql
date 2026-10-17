@@ -404,3 +404,18 @@ BEGIN
     RAISE NOTICE 'PASS: R12 shortening below min_nights rejected — %', SQLERRM;
   END;
 END $$;
+
+-- Booking code · omitted code comes from booking_code_seq, after the seeded BK-0007
+DO $$
+DECLARE
+  v_code booking.booking_code%TYPE;
+BEGIN
+  INSERT INTO booking (customer_id, branch_id, check_in_date, check_out_date)
+  VALUES (2, 1, current_date + 90, current_date + 91)
+  RETURNING booking_code INTO v_code;
+  IF v_code ~ '^BK-\d{4,}$' AND substring(v_code FROM 4)::int > 7 THEN
+    RAISE NOTICE 'PASS: generated booking code % follows the seeded codes', v_code;
+  ELSE
+    RAISE EXCEPTION 'FAIL: unexpected generated booking code %', v_code;
+  END IF;
+END $$;

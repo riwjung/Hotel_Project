@@ -18,3 +18,10 @@ BEGIN
     );
   END LOOP;
 END $$;
+
+-- booking_code_seq (050) continues after the highest seeded BK-nnnn code
+SELECT setval(
+  'booking_code_seq',
+  COALESCE((SELECT max(substring(booking_code FROM '^BK-([0-9]+)$')::int) FROM booking), 0) + 1,
+  false
+);

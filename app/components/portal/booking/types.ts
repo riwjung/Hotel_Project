@@ -1,4 +1,5 @@
 // Booking types shared by route repositories and client components.
+import type { RoomStatus } from "../room/types";
 
 export const BOOKING_STATUSES = [
   "PENDING",
@@ -148,3 +149,38 @@ export type PaymentInput = {
 };
 
 export type CheckOutInput = { assignedEmpId: number; remark?: string | null };
+
+/** Query of GET /api/bookings/availability (branchId is ignored for branch-scoped users) */
+export type AvailabilityFilter = { branchId?: number; checkIn: string; checkOut: string };
+
+/** A room with no overlapping active booking, plus the ACTIVE rate that covers the check-in date. */
+export type AvailableRoom = {
+  roomId: number;
+  roomNumber: string;
+  roomName: string | null;
+  floor: number;
+  roomStatus: RoomStatus;
+  typeName: string;
+  capacity: number;
+  bedType: string;
+  rateId: number;
+  rateName: string;
+  pricePerNight: number;
+  minNights: number;
+};
+
+/** Body of POST /api/bookings. Prices, nights and totals are filled by DB triggers. */
+export type BookingCreateInput = {
+  customerId: number;
+  branchId?: number | null;
+  checkInDate: string;
+  checkOutDate: string;
+  guestCount: number;
+  bookingChannel: BookingChannel;
+  promotionCode?: string | null;
+  roomIds: number[];
+  /** true → move PENDING → CONFIRMED in the same transaction */
+  confirm: boolean;
+};
+
+export type BookingCreated = { bookingId: number; bookingCode: string };

@@ -16,7 +16,7 @@ import {
 } from "antd";
 import { ArrowLeftOutlined, CheckOutlined, CreditCardOutlined, LoginOutlined, LogoutOutlined } from "@ant-design/icons";
 import { useSession } from "@/app/lib/auth-client";
-import { formatDate, formatDateTime, formatMoney } from "@/app/lib/format";
+import { codeLabel, formatDate, formatDateTime, formatMoney } from "@/app/lib/format";
 import { BOOKING_STATUS, PAYMENT_STATUS } from "@/app/lib/status";
 import { sortDate, sortNumber, sortText } from "@/app/lib/table-sort";
 import { useApiData } from "@/app/lib/use-api-data";
@@ -37,7 +37,6 @@ import type {
   PaymentInput,
 } from "./types";
 
-const codeLabel = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/^./, (c) => c.toUpperCase());
 
 export default function BookingDetailPage({ bookingId }: { bookingId: number }) {
   const router = useRouter();

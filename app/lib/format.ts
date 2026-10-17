@@ -18,3 +18,8 @@ export function formatDateTime(value: string | null | undefined): string {
 export function percent(part: number, whole: number): number {
   return whole > 0 ? Math.round((part / whole) * 100) : 0;
 }
+
+/** Non-status code → readable label: 'WALK_IN' → 'Walk in'. Statuses use status.tsx palettes instead. */
+export function codeLabel(value: string): string {
+  return value.replaceAll("_", " ").toLowerCase().replace(/^./, (c) => c.toUpperCase());
+}

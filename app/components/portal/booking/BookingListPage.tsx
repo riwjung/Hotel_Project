@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import dayjs, { type Dayjs } from "dayjs";
-import { Card, DatePicker, Empty, Input, Select, Space } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { Button, Card, DatePicker, Empty, Input, Select, Space } from "antd";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { useSession } from "@/app/lib/auth-client";
 import { BOOKING_STATUS, statusOptions } from "@/app/lib/status";
 import { useApiData } from "@/app/lib/use-api-data";
@@ -14,6 +15,7 @@ import BookingTable from "./BookingTable";
 import type { BookingFilter } from "./types";
 
 export default function BookingListPage() {
+  const router = useRouter();
   const { user, can } = useSession();
   const chainWide = user?.scopeLevel === "CHAIN" && can("BRANCH_VIEW");
   const [filter, setFilter] = useState<BookingFilter>({});
@@ -74,6 +76,11 @@ export default function BookingListPage() {
                 }))
               }
             />
+            {can("BOOKING_MANAGE") && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push("/bookings/new")}>
+                New booking
+              </Button>
+            )}
           </Space>
         }
       >

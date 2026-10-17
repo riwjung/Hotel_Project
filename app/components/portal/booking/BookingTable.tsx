@@ -2,14 +2,13 @@
 
 import { Table, Typography, type TableColumnsType } from "antd";
 import { useRouter } from "next/navigation";
-import { formatDate, formatMoney } from "@/app/lib/format";
+import { codeLabel, formatDate, formatMoney } from "@/app/lib/format";
 import { BOOKING_STATUS } from "@/app/lib/status";
 import { sortByOrder, sortDate, sortNumber, sortText } from "@/app/lib/table-sort";
 import StatusTag from "../StatusTag";
 import { BOOKING_STATUSES, type BookingListItem } from "./types";
 
 type Props = { bookings: BookingListItem[]; loading: boolean; showBranch: boolean };
-const channelLabel = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/^./, (c) => c.toUpperCase());
 
 export default function BookingTable({ bookings, loading, showBranch }: Props) {
   const router = useRouter();
@@ -66,7 +65,7 @@ export default function BookingTable({ bookings, loading, showBranch }: Props) {
       title: "Channel",
       dataIndex: "bookingChannel",
       sorter: sortText<BookingListItem>((row) => row.bookingChannel),
-      render: channelLabel,
+      render: codeLabel,
     },
     {
       title: "Status",

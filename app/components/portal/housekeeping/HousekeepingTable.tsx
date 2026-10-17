@@ -2,7 +2,7 @@
 
 import { Button, Space, Table, Typography, type TableColumnsType } from "antd";
 import { CheckOutlined, PlayCircleOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
-import { formatDate, formatDateTime } from "@/app/lib/format";
+import { codeLabel, formatDate, formatDateTime } from "@/app/lib/format";
 import { HOUSEKEEPING_STATUS } from "@/app/lib/status";
 import { sortByOrder, sortDate, sortText } from "@/app/lib/table-sort";
 import StatusTag from "../StatusTag";
@@ -18,7 +18,6 @@ type Props = {
   onAdvance: (task: HousekeepingTask, status: NextStatus) => void;
 };
 
-const codeLabel = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/^./, (c) => c.toUpperCase());
 
 export default function HousekeepingTable({ tasks, loading, showBranch, canManage, actingId, onAdvance }: Props) {
   const columns: TableColumnsType<HousekeepingTask> = [

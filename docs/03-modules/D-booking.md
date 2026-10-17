@@ -25,6 +25,7 @@ palette อยู่ใน `app/lib/status.tsx › BOOKING_STATUS` แล้ว
 |---|---|---|
 | `/bookings` | ✅ list/filter + lifecycle actions | `BOOKING_VIEW` / `BOOKING_MANAGE` |
 | `/bookings/[id]` | ✅ detail/check-in/payment/check-out | 〃 |
+| `/bookings/new` | ✅ create booking | `BOOKING_MANAGE` |
 | `/customers` | ✅ list/search/tier filter + create/edit/delete | `CUSTOMER_VIEW` / `CUSTOMER_MANAGE` |
 
 **Customer = ข้อมูลระดับเครือ** (`customer` ไม่มี `branch_id`) จึงไม่ใช้ `branchScope` — แขกคนเดียวกันใช้ได้ทุกสาขา
@@ -41,7 +42,10 @@ await withTx(session, (db) =>
 
 ## Backlog
 - [x] Bookings list จาก `v_booking_overview` (filter สาขา/สถานะ/ช่วงวัน, sort สถานะตาม workflow)
-- [ ] สร้าง booking: เลือกลูกค้า → วัน → ห้องว่าง (query ห้องที่ไม่ชน R3) → rate → promotion
+- [x] สร้าง booking `/bookings/new` (2026-10-17): ลูกค้า (+ สร้างลูกค้าใหม่ในหน้าเดียวกัน) → สาขา/วัน/จำนวนคน → ห้องว่าง
+      (`GET /api/bookings/availability` ใช้เงื่อนไขเดียวกับ R3) → rate = ACTIVE rate ที่ครอบวัน check-in (R1 รับประกันว่ามีอันเดียว)
+      → promotion code (R8) → ยืนยันทันทีได้; `booking_code` มาจาก `booking_code_seq` (`fn_next_booking_code()`)
+      — sequence ไม่ rollback จึงอาจมีเลขข้าม ถ้า insert ล้ม (เช่น BK-0011 ถูกใช้แล้วโดน R11 ปฏิเสธ)
 - [x] Booking detail: Descriptions + ห้อง + guests + services + payments + timeline จาก `booking_status_log`
 - [x] Check-in: บันทึก `actual_check_in`, `checkin_by_emp_id`, `key_card_no`, guests; ปรับ room_status → OCCUPIED
 - [x] Check-out: `actual_check_out`, room_status → CLEANING, สร้าง housekeeping_task อัตโนมัติ ([[F-operations]])
