@@ -77,7 +77,7 @@ export const NAV: NavGroup[] = [
     note: "03-modules/D-booking.md",
     items: [
       { path: "/bookings", label: "Bookings", icon: "booking", permission: "BOOKING_VIEW", status: "ready", tables: ["booking", "booking_room", "guest", "booking_status_log"] },
-      { path: "/customers", label: "Customers", icon: "customer", permission: "CUSTOMER_VIEW", status: "planned", tables: ["customer", "member_tier"] },
+      { path: "/customers", label: "Customers", icon: "customer", permission: "CUSTOMER_VIEW", status: "ready", tables: ["customer", "member_tier"] },
     ],
   },
   {

@@ -25,7 +25,10 @@ palette อยู่ใน `app/lib/status.tsx › BOOKING_STATUS` แล้ว
 |---|---|---|
 | `/bookings` | ✅ list/filter + lifecycle actions | `BOOKING_VIEW` / `BOOKING_MANAGE` |
 | `/bookings/[id]` | ✅ detail/check-in/payment/check-out | 〃 |
-| `/customers` | ⏳ | `CUSTOMER_VIEW` / `CUSTOMER_MANAGE` |
+| `/customers` | ✅ list/search/tier filter + create/edit/delete | `CUSTOMER_VIEW` / `CUSTOMER_MANAGE` |
+
+**Customer = ข้อมูลระดับเครือ** (`customer` ไม่มี `branch_id`) จึงไม่ใช้ `branchScope` — แขกคนเดียวกันใช้ได้ทุกสาขา
+ลบลูกค้าที่มี booking ไม่ได้ (FK → 409 `IN_USE`); tier เลือกเอง ฟอร์มแนะนำ tier ตามแต้ม (`min_point`)
 
 ## วิธีเขียน status change (สำคัญ)
 ```ts
@@ -43,5 +46,5 @@ await withTx(session, (db) =>
 - [x] Check-in: บันทึก `actual_check_in`, `checkin_by_emp_id`, `key_card_no`, guests; ปรับ room_status → OCCUPIED
 - [x] Check-out: `actual_check_out`, room_status → CLEANING, สร้าง housekeeping_task อัตโนมัติ ([[F-operations]])
 - [x] Cancel / No-show ผ่าน `modal.confirm` danger
-- [ ] Customers CRUD + tier/points
+- [x] Customers CRUD + tier/points (2026-10-17)
 - [ ] Customer self-service site + customer login (แยก route group `(site)`) — ยังไม่อยู่ในขอบเขต skeleton
