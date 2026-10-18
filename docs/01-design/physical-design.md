@@ -18,7 +18,7 @@ updated: 2026-10-10
 | `060_e_services.sql` | service_category, service, branch_service, booking_service, service_assignment, employee_service_skill |
 | `070_f_operations.sql` | housekeeping_task, maintenance_request |
 | `075_g_transactions.sql` | payment, review |
-| `080_business_rules.sql` | R1–R13 (ด้านล่าง) |
+| `080_business_rules.sql` | R1–R16 (ด้านล่าง) |
 | `085_totals_triggers.sql` | ยอดรวม — [[ADR-003-stored-totals-with-triggers]] |
 | `090_views.sql` | `v_dashboard_branch_today`, `v_booking_overview` |
 
@@ -85,6 +85,8 @@ updated: 2026-10-10
 | R11 | ผู้เข้าพักต้องไม่เกินความจุห้อง: (a) แถว `guest` ต่อห้อง ≤ `room_type.capacity` (b) `booking.guest_count` ≤ Σ capacity ของทุกห้องใน booking | (a) trigger BEFORE บน `guest` + `FOR UPDATE` แถว booking_room กัน race · (b) **`CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`** ตรวจตอน COMMIT เพราะ booking ถูก insert ก่อนห้อง (4 คน 2 ห้อง × 2 จะ "เกิน" หลังห้องแรก) — booking ที่ยังไม่มีห้องข้ามไป |
 | R12 | จำนวนคืนต้อง ≥ `room_rate.min_nights` (ส่วน min_nights ≥ 1 คือ CHECK `ck_room_rate_min_nights`) | trigger BEFORE บน `booking_room`; การย่อวันของ booking ถูกจับด้วยเพราะ touch-lines ยิง trigger ซ้ำ |
 | R13 | `customer.tier_id` = tier ที่ `min_point` สูงสุดที่ ≤ `member_point` (แอปเลือก tier เองไม่ได้); ladder ต้องเริ่มที่ 0 แต้ม | trigger BEFORE INSERT/UPDATE OF member_point, tier_id บน `customer` + **statement-level** trigger บน `member_tier` (เปลี่ยนเกณฑ์ → คำนวณลูกค้าทุกคนใหม่) — [[ADR-006-member-tier-discount-and-derived-tier]] |
+| R15 | ห้องที่มีงานซ่อมค้าง (OPEN / IN_PROGRESS) = `MAINTENANCE` (ยกเว้นห้องที่มีแขก OCCUPIED หรือ OUT_OF_SERVICE) — ปิดงานสุดท้าย → `CLEANING` ถ้ายังมีงานแม่บ้านค้าง ไม่งั้น `AVAILABLE`; workflow OPEN → IN_PROGRESS → RESOLVED/CANCELLED (RESOLVED ใส่ `done_date`); ห้องต้องอยู่สาขาเดียวกับคำขอ | BEFORE บน `maintenance_request` (workflow + ห้องตรงสาขา) · AFTER sync ห้อง · BEFORE UPDATE OF room_status บน `room` กันการปล่อยห้องระหว่างซ่อม (เช่น check-out → CLEANING) |
+| R16 | คนที่ถูก assign งานของสาขาต้องอยู่สาขานั้น: ช่างซ่อม, แม่บ้าน + ผู้ตรวจ, คนทำ service, คนเข้ากะ — พนักงานระดับเครือ (`branch_id` NULL) ได้ทุกสาขา | `fn_assert_employee_in_branch()` + trigger BEFORE บน `maintenance_request`, `housekeeping_task`, `service_assignment`, `work_schedule` |
 
 เมื่อเปลี่ยนวัน/สาขาของ booking → trigger "touch" แถว booking_room/booking_service → R3/R4/R12 ถูกตรวจซ้ำ + คิด night_count ใหม่อัตโนมัติ
 
@@ -97,6 +99,6 @@ updated: 2026-10-10
 ## ยังไม่ได้บังคับ (backlog)
 - [x] `room_rate.min_nights` เทียบกับจำนวนคืนจริง → R12 (2026-10-17)
 - [x] `guest` จำนวนคนต่อห้อง ≤ `room_type.capacity` → R11 (2026-10-17)
-- [ ] พนักงานที่ assign ต้องอยู่สาขาเดียวกับ booking
+- [x] พนักงานที่ assign ต้องอยู่สาขาเดียวกับงาน → R16 (2026-10-18)
 - [x] ส่วนลด member tier ซ้อนกับ promotion + tier ตามแต้ม → ADR-006, R13 (2026-10-17)
-- [ ] เปลี่ยน room_status อัตโนมัติตอน check-in/out
+- [x] เปลี่ยน room_status อัตโนมัติ: check-in/out ทำใน API transaction; ระหว่างซ่อม → R15 (2026-10-18)

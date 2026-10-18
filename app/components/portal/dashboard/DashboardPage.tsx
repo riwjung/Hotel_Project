@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { Button, Card, Statistic, Table, Typography, type TableColumnsType } from "antd";
 import {
   ClearOutlined,
@@ -11,7 +12,9 @@ import {
   ToolOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+import { useSession } from "@/app/lib/auth-client";
 import { formatDate, percent } from "@/app/lib/format";
+import type { PermissionCode } from "@/app/lib/permissions";
 import { sortNumber, sortText } from "@/app/lib/table-sort";
 import { useApiData } from "@/app/lib/use-api-data";
 import LoadError from "../LoadError";
@@ -25,12 +28,16 @@ type Metric = {
   value: (t: DashboardTotals) => number;
   suffix?: string;
   caption?: (t: DashboardTotals) => string;
+  /** the tile opens this page when the user may see it */
+  link?: { href: string; permission: PermissionCode };
 };
 
+const bookings = { href: "/bookings", permission: "BOOKING_VIEW" as const };
+
 const METRICS: Metric[] = [
-  { title: "Arrivals today", icon: <LoginOutlined />, value: (t) => t.arrivalsToday },
-  { title: "Departures today", icon: <LogoutOutlined />, value: (t) => t.departuresToday },
-  { title: "In-house bookings", icon: <UserOutlined />, value: (t) => t.inHouse },
+  { title: "Arrivals today", icon: <LoginOutlined />, value: (t) => t.arrivalsToday, link: bookings },
+  { title: "Departures today", icon: <LogoutOutlined />, value: (t) => t.departuresToday, link: bookings },
+  { title: "In-house bookings", icon: <UserOutlined />, value: (t) => t.inHouse, link: bookings },
   {
     title: "Occupancy",
     icon: <PieChartOutlined />,
@@ -38,8 +45,18 @@ const METRICS: Metric[] = [
     suffix: "%",
     caption: (t) => `${t.roomsOccupied}/${t.roomsTotal} occupied · ${t.roomsAvailable} free`,
   },
-  { title: "Open maintenance", icon: <ToolOutlined />, value: (t) => t.openMaintenance },
-  { title: "Housekeeping pending", icon: <ClearOutlined />, value: (t) => t.housekeepingPending },
+  {
+    title: "Open maintenance",
+    icon: <ToolOutlined />,
+    value: (t) => t.openMaintenance,
+    link: { href: "/maintenance", permission: "MAINTENANCE_VIEW" },
+  },
+  {
+    title: "Housekeeping pending",
+    icon: <ClearOutlined />,
+    value: (t) => t.housekeepingPending,
+    link: { href: "/housekeeping", permission: "HOUSEKEEPING_VIEW" },
+  },
 ];
 
 const num = (key: keyof DashboardTotals, title: string) => ({
@@ -75,6 +92,7 @@ const columns: TableColumnsType<DashboardBranchRow> = [
 
 export default function DashboardPage() {
   const { data, loading, error, reload } = useApiData(fetchDashboard, "dashboard");
+  const { can } = useSession();
 
   return (
     <>
@@ -90,16 +108,26 @@ export default function DashboardPage() {
       </div>
 
       <div className={styles.metricGrid}>
-        {METRICS.map((m) => (
-          <Card key={m.title} variant="outlined" loading={!data && loading} size="small">
-            <Statistic title={m.title} prefix={m.icon} value={data ? m.value(data.totals) : 0} suffix={m.suffix} />
-            {data && m.caption && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {m.caption(data.totals)}
-              </Typography.Text>
-            )}
-          </Card>
-        ))}
+        {METRICS.map((m) => {
+          const linked = m.link && can(m.link.permission);
+          const card = (
+            <Card key={m.title} variant="outlined" loading={!data && loading} size="small" hoverable={linked}>
+              <Statistic title={m.title} prefix={m.icon} value={data ? m.value(data.totals) : 0} suffix={m.suffix} />
+              {data && m.caption && (
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {m.caption(data.totals)}
+                </Typography.Text>
+              )}
+            </Card>
+          );
+          return linked && m.link ? (
+            <Link key={m.title} href={m.link.href} aria-label={`${m.title}: open ${m.link.href.slice(1)}`}>
+              {card}
+            </Link>
+          ) : (
+            card
+          );
+        })}
       </div>
 
       <Card variant="outlined" title="By branch" styles={{ body: { padding: 0 } }}>

@@ -98,7 +98,7 @@ export const NAV: NavGroup[] = [
     note: "03-modules/F-operations.md",
     items: [
       { path: "/housekeeping", label: "Housekeeping", icon: "housekeeping", permission: "HOUSEKEEPING_VIEW", status: "ready", tables: ["housekeeping_task"] },
-      { path: "/maintenance", label: "Maintenance", icon: "maintenance", permission: "MAINTENANCE_VIEW", status: "planned", tables: ["maintenance_request"] },
+      { path: "/maintenance", label: "Maintenance", icon: "maintenance", permission: "MAINTENANCE_VIEW", status: "ready", tables: ["maintenance_request"] },
     ],
   },
   {

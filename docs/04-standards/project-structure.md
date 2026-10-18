@@ -59,3 +59,13 @@ Hotel-Project/
 11. **docs** — อัปเดต note ของโมดูลใน `docs/03-modules/` + checklist ใน [[ui-standard]] §8
 
 **กติกาข้อ 3 ครั้ง:** logic เดียวกันเขียนครั้งที่ 3 → ย้ายขึ้น `app/lib/`
+
+## ของกลางที่ย้ายขึ้นมาแล้ว (2026-10-18)
+| ใช้เมื่อ | ไฟล์ |
+|---|---|
+| หน้า CRUD: state ของ modal + save/delete + ข้อความ | `app/lib/use-crud-editor.ts` → `useCrudEditor({ noun, label, create, update, remove, onChanged })` (แทนการเขียน `use<Feature>Editor.ts` ใหม่ทุกครั้ง) |
+| filter สาขาใน `extra` ของ Card | `app/components/portal/BranchFilter.tsx` (ไม่แสดงสำหรับผู้ใช้ระดับสาขา) |
+| ฟอร์มที่ผู้ใช้ระดับเครือต้องเลือกสาขา | `app/components/portal/branch/useBranchOptions.ts` |
+| dropdown พนักงาน | `GET /api/employees/options` + `employeeSelectOptions()` ใน `employee/employee.api.ts` |
+| parse query string ใน route | `parseQuery(req, schema)` ใน `app/lib/server/http.ts` |
+| ป้ายของรหัสที่ไม่ใช่สถานะ (`WALK_IN` → "Walk in") | `codeLabel()` ใน `app/lib/format.ts` |

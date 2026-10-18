@@ -113,6 +113,13 @@ export async function parseBody<S extends z.ZodType>(req: Request, schema: S): P
   return parsed.data;
 }
 
+/** Parses the query string with zod; the first issue becomes a 400 with a readable message. */
+export function parseQuery<S extends z.ZodType>(req: NextRequest, schema: S): z.infer<S> {
+  const parsed = schema.safeParse(Object.fromEntries(req.nextUrl.searchParams));
+  if (!parsed.success) throw new HttpError(400, "VALIDATION", parsed.error.issues[0].message);
+  return parsed.data;
+}
+
 export function idParam(params: Record<string, string | string[]>, name = "id"): number {
   const raw = params[name];
   const id = Number(raw);

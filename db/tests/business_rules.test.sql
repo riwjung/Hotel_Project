@@ -544,3 +544,112 @@ BEGIN
     RAISE EXCEPTION 'FAIL: new booking snapshot rate = %', v_rate;
   END IF;
 END $$;
+
+-- R15 · opening a repair on an AVAILABLE room takes it out of use; a later write
+--       that would free it (e.g. check-out → CLEANING) keeps it MAINTENANCE;
+--       resolving the last repair releases it and stamps done_date
+DO $$
+DECLARE
+  v_id      integer;
+  v_open    varchar;
+  v_kept    varchar;
+  v_after   varchar;
+  v_done    timestamptz;
+BEGIN
+  INSERT INTO maintenance_request (branch_id, room_id, reported_by_emp_id, issue_title)
+  VALUES (1, 2, 3, 'Door lock jammed')                                           -- room 102 is AVAILABLE
+  RETURNING maintenance_id INTO v_id;
+  SELECT room_status INTO v_open FROM room WHERE room_id = 2;
+
+  UPDATE room SET room_status = 'CLEANING' WHERE room_id = 2;
+  SELECT room_status INTO v_kept FROM room WHERE room_id = 2;
+
+  UPDATE maintenance_request SET maintenance_status = 'RESOLVED' WHERE maintenance_id = v_id;
+  SELECT room_status INTO v_after FROM room WHERE room_id = 2;
+  SELECT done_date INTO v_done FROM maintenance_request WHERE maintenance_id = v_id;
+
+  IF v_open = 'MAINTENANCE' AND v_kept = 'MAINTENANCE' AND v_after = 'AVAILABLE' AND v_done IS NOT NULL THEN
+    RAISE NOTICE 'PASS: R15 room 102 AVAILABLE → MAINTENANCE (kept) → AVAILABLE when resolved';
+  ELSE
+    RAISE EXCEPTION 'FAIL: room 102 statuses open=% kept=% after=% done=%', v_open, v_kept, v_after, v_done;
+  END IF;
+END $$;
+
+-- R15 · a room still waiting for its clean goes back to CLEANING, an occupied room is left alone
+DO $$
+DECLARE
+  v_id      integer;
+  v_cleaning varchar;
+  v_occupied varchar;
+BEGIN
+  -- room 103 is CLEANING with an unverified housekeeping task
+  INSERT INTO maintenance_request (branch_id, room_id, reported_by_emp_id, issue_title)
+  VALUES (1, 3, 3, 'Shower head broken') RETURNING maintenance_id INTO v_id;
+  UPDATE maintenance_request SET maintenance_status = 'CANCELLED' WHERE maintenance_id = v_id;
+  SELECT room_status INTO v_cleaning FROM room WHERE room_id = 3;
+
+  -- room 201 is OCCUPIED (BK-0001 in house): the guest stays, the room stays OCCUPIED
+  INSERT INTO maintenance_request (branch_id, room_id, reported_by_emp_id, issue_title)
+  VALUES (1, 4, 3, 'TV not working');
+  SELECT room_status INTO v_occupied FROM room WHERE room_id = 4;
+
+  IF v_cleaning = 'CLEANING' AND v_occupied = 'OCCUPIED' THEN
+    RAISE NOTICE 'PASS: R15 cancelled repair returns room 103 to CLEANING; occupied room 201 stays OCCUPIED';
+  ELSE
+    RAISE EXCEPTION 'FAIL: room 103=% room 201=%', v_cleaning, v_occupied;
+  END IF;
+END $$;
+
+-- R15 · closed requests are final, and the room must be in the request's branch
+DO $$
+BEGIN
+  BEGIN
+    UPDATE maintenance_request SET maintenance_status = 'OPEN' WHERE issue_title = 'Shower drain slow';  -- RESOLVED
+    RAISE EXCEPTION 'FAIL: RESOLVED → OPEN was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R15 reopening a resolved request rejected — %', SQLERRM;
+  END;
+  BEGIN
+    INSERT INTO maintenance_request (branch_id, room_id, reported_by_emp_id, issue_title)
+    VALUES (1, 12, 3, 'Wrong branch room');                                       -- room 12 is HKT
+    RAISE EXCEPTION 'FAIL: a BKK request for an HKT room was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R15 room from another branch rejected — %', SQLERRM;
+  END;
+END $$;
+
+-- R16 · people assigned to branch work must belong to that branch (chain-level staff may help anywhere)
+DO $$
+DECLARE
+  v_rejected integer := 0;
+BEGIN
+  BEGIN   -- maintenance technician from CNX on a BKK request
+    INSERT INTO maintenance_request (branch_id, room_id, reported_by_emp_id, assigned_to_emp_id, issue_title)
+    VALUES (1, NULL, 3, 7, 'Lobby door squeaks');
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- HKT staff cleaning a BKK room
+    INSERT INTO housekeeping_task (room_id, assigned_emp_id, task_type) VALUES (1, 9, 'DEEP_CLEAN');
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- HKT therapist (skilled in Thai massage) on a BKK massage order
+    INSERT INTO service_assignment (booking_service_id, employee_id) VALUES (2, 9);
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- CNX staff on a BKK shift
+    INSERT INTO work_schedule (employee_id, shift_id, work_date) VALUES (7, 1, current_date + 1);
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+
+  -- the owner (no branch) may still be assigned
+  INSERT INTO maintenance_request (branch_id, room_id, reported_by_emp_id, assigned_to_emp_id, issue_title)
+  VALUES (1, NULL, 3, 1, 'Owner checks the generator');
+
+  IF v_rejected = 4 THEN
+    RAISE NOTICE 'PASS: R16 cross-branch assignee rejected for maintenance, housekeeping, service and shift (owner allowed)';
+  ELSE
+    RAISE EXCEPTION 'FAIL: only % of 4 cross-branch assignments were rejected', v_rejected;
+  END IF;
+END $$;

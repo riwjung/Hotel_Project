@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   CheckCircleOutlined,
   CheckOutlined,
   ClearOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  FireOutlined,
   LoginOutlined,
   LogoutOutlined,
   MinusCircleOutlined,
+  MinusOutlined,
   StopOutlined,
   ToolOutlined,
   UserDeleteOutlined,
@@ -17,6 +22,7 @@ import type { BranchStatus } from "@/app/components/portal/branch/types";
 import type { RoomStatus } from "@/app/components/portal/room/types";
 import type { BookingStatus, PaymentStatus } from "@/app/components/portal/booking/types";
 import type { HousekeepingStatus } from "@/app/components/portal/housekeeping/types";
+import type { MaintenancePriority, MaintenanceStatus } from "@/app/components/portal/maintenance/types";
 
 // Status palettes: DB stores the code, the UI shows label + color + icon.
 // Color is never the only signal (icon + label too). Key order = workflow order,
@@ -60,6 +66,21 @@ export const HOUSEKEEPING_STATUS: Record<HousekeepingStatus, StatusMeta> = {
   DONE:        { label: "Done",        color: "gold",    icon: <CheckOutlined /> },
   VERIFIED:    { label: "Verified",    color: "green",   icon: <CheckCircleOutlined /> },
   CANCELLED:   { label: "Cancelled",   color: "red",     icon: <CloseCircleOutlined /> },
+};
+
+export const MAINTENANCE_STATUS: Record<MaintenanceStatus, StatusMeta> = {
+  OPEN:        { label: "Open",        color: "gold",    icon: <ExclamationCircleOutlined /> },
+  IN_PROGRESS: { label: "In progress", color: "blue",    icon: <ToolOutlined /> },
+  RESOLVED:    { label: "Resolved",    color: "green",   icon: <CheckCircleOutlined /> },
+  CANCELLED:   { label: "Cancelled",   color: "default", icon: <CloseCircleOutlined /> },
+};
+
+// Priority is not a workflow status, but it is a coded value rendered the same way (key order = urgency).
+export const MAINTENANCE_PRIORITY: Record<MaintenancePriority, StatusMeta> = {
+  LOW:    { label: "Low",    color: "default", icon: <ArrowDownOutlined /> },
+  MEDIUM: { label: "Medium", color: "blue",    icon: <MinusOutlined /> },
+  HIGH:   { label: "High",   color: "orange",  icon: <ArrowUpOutlined /> },
+  URGENT: { label: "Urgent", color: "red",     icon: <FireOutlined /> },
 };
 
 /** Options for a status filter <Select>, in workflow order. */

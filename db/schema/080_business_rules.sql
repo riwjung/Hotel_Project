@@ -451,3 +451,189 @@ END $$;
 CREATE TRIGGER trg_member_tier_90_resync_customers
   AFTER INSERT OR UPDATE OF min_point ON member_tier
   FOR EACH STATEMENT EXECUTE FUNCTION fn_member_tier_resync_customers();
+
+
+-- ---------------------------------------------------------------------
+-- R15 · Rooms under repair
+--      a) a maintenance request's room must be in the request's branch
+--      b) workflow: OPEN → IN_PROGRESS | RESOLVED | CANCELLED,
+--         IN_PROGRESS → RESOLVED | CANCELLED; RESOLVED and CANCELLED are final.
+--         RESOLVED stamps done_date.
+--      c) a room with an OPEN / IN_PROGRESS request is MAINTENANCE, so it cannot be
+--         checked in. A guest already inside keeps it OCCUPIED, and OUT_OF_SERVICE
+--         is left alone. Any write that would make it AVAILABLE / CLEANING (e.g.
+--         check-out) keeps it MAINTENANCE. Closing its last open request releases
+--         it: CLEANING if a housekeeping task is still unverified, else AVAILABLE.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_room_has_open_repair(p_room_id integer) RETURNS boolean
+LANGUAGE sql STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM maintenance_request
+    WHERE room_id = p_room_id AND maintenance_status IN ('OPEN', 'IN_PROGRESS')
+  )
+$$;
+
+CREATE FUNCTION fn_room_sync_repair_status(p_room_id integer) RETURNS void
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF fn_room_has_open_repair(p_room_id) THEN
+    UPDATE room SET room_status = 'MAINTENANCE'
+    WHERE room_id = p_room_id AND room_status IN ('AVAILABLE', 'CLEANING');
+  ELSE
+    UPDATE room SET room_status = CASE
+        WHEN EXISTS (
+          SELECT 1 FROM housekeeping_task
+          WHERE room_id = p_room_id AND task_status IN ('PENDING', 'IN_PROGRESS', 'DONE')
+        ) THEN 'CLEANING'
+        ELSE 'AVAILABLE'
+      END
+    WHERE room_id = p_room_id AND room_status = 'MAINTENANCE';
+  END IF;
+END $$;
+
+CREATE FUNCTION fn_maintenance_validate() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_room_branch  integer;
+  v_room_number  room.room_number%TYPE;
+BEGIN
+  IF NEW.room_id IS NOT NULL THEN
+    SELECT branch_id, room_number INTO v_room_branch, v_room_number FROM room WHERE room_id = NEW.room_id;
+    IF v_room_branch <> NEW.branch_id THEN
+      RAISE EXCEPTION 'Room % is not in this request''s branch', v_room_number;
+    END IF;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW.maintenance_status <> OLD.maintenance_status THEN
+    IF NOT (
+         (OLD.maintenance_status = 'OPEN'        AND NEW.maintenance_status IN ('IN_PROGRESS', 'RESOLVED', 'CANCELLED'))
+      OR (OLD.maintenance_status = 'IN_PROGRESS' AND NEW.maintenance_status IN ('RESOLVED', 'CANCELLED'))
+    ) THEN
+      RAISE EXCEPTION 'A % maintenance request cannot move to %',
+        lower(replace(OLD.maintenance_status, '_', ' ')), lower(replace(NEW.maintenance_status, '_', ' '));
+    END IF;
+  END IF;
+
+  IF NEW.maintenance_status = 'RESOLVED' AND NEW.done_date IS NULL THEN
+    NEW.done_date := now();
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_maintenance_request_10_validate
+  BEFORE INSERT OR UPDATE ON maintenance_request
+  FOR EACH ROW EXECUTE FUNCTION fn_maintenance_validate();
+
+CREATE FUNCTION fn_maintenance_sync_room() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND OLD.room_id IS NOT NULL AND OLD.room_id IS DISTINCT FROM NEW.room_id THEN
+    PERFORM fn_room_sync_repair_status(OLD.room_id);
+  END IF;
+  IF NEW.room_id IS NOT NULL THEN
+    PERFORM fn_room_sync_repair_status(NEW.room_id);
+  END IF;
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_maintenance_request_80_sync_room
+  AFTER INSERT OR UPDATE OF maintenance_status, room_id ON maintenance_request
+  FOR EACH ROW EXECUTE FUNCTION fn_maintenance_sync_room();
+
+CREATE FUNCTION fn_room_keep_under_repair() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.room_status IN ('AVAILABLE', 'CLEANING') AND fn_room_has_open_repair(NEW.room_id) THEN
+    NEW.room_status := 'MAINTENANCE';
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_room_10_keep_under_repair
+  BEFORE INSERT OR UPDATE OF room_status ON room
+  FOR EACH ROW EXECUTE FUNCTION fn_room_keep_under_repair();
+
+
+-- ---------------------------------------------------------------------
+-- R16 · People assigned to branch work belong to that branch
+--      maintenance technician, housekeeping assignee and verifier, service
+--      worker and shift worker must have employee.branch_id = the work's branch.
+--      Chain-level staff (branch_id NULL, e.g. the owner) may be assigned anywhere.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_assert_employee_in_branch(p_employee_id integer, p_branch_id integer) RETURNS void
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_name    text;
+  v_branch  integer;
+  v_code    branch.branch_code%TYPE;
+  v_target  branch.branch_code%TYPE;
+BEGIN
+  IF p_employee_id IS NULL THEN
+    RETURN;
+  END IF;
+  SELECT e.first_name || ' ' || e.last_name, e.branch_id, b.branch_code
+    INTO v_name, v_branch, v_code
+  FROM employee e LEFT JOIN branch b ON b.branch_id = e.branch_id
+  WHERE e.employee_id = p_employee_id;
+
+  IF v_branch IS NOT NULL AND v_branch <> p_branch_id THEN
+    SELECT branch_code INTO v_target FROM branch WHERE branch_id = p_branch_id;
+    RAISE EXCEPTION '% works at %, not %', v_name, v_code, v_target;
+  END IF;
+END $$;
+
+CREATE FUNCTION fn_maintenance_check_assignee() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  PERFORM fn_assert_employee_in_branch(NEW.assigned_to_emp_id, NEW.branch_id);
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_maintenance_request_20_check_assignee
+  BEFORE INSERT OR UPDATE OF assigned_to_emp_id, branch_id ON maintenance_request
+  FOR EACH ROW EXECUTE FUNCTION fn_maintenance_check_assignee();
+
+CREATE FUNCTION fn_housekeeping_check_staff() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_branch integer;
+BEGIN
+  SELECT branch_id INTO v_branch FROM room WHERE room_id = NEW.room_id;
+  PERFORM fn_assert_employee_in_branch(NEW.assigned_emp_id, v_branch);
+  PERFORM fn_assert_employee_in_branch(NEW.verified_by_emp_id, v_branch);
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_housekeeping_task_10_check_staff
+  BEFORE INSERT OR UPDATE OF assigned_emp_id, verified_by_emp_id, room_id ON housekeeping_task
+  FOR EACH ROW EXECUTE FUNCTION fn_housekeeping_check_staff();
+
+CREATE FUNCTION fn_service_assignment_check_branch() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_branch integer;
+BEGIN
+  SELECT b.branch_id INTO v_branch
+  FROM booking_service bs JOIN booking b ON b.booking_id = bs.booking_id
+  WHERE bs.booking_service_id = NEW.booking_service_id;
+  PERFORM fn_assert_employee_in_branch(NEW.employee_id, v_branch);
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_service_assignment_20_check_branch
+  BEFORE INSERT OR UPDATE OF employee_id, booking_service_id ON service_assignment
+  FOR EACH ROW EXECUTE FUNCTION fn_service_assignment_check_branch();
+
+CREATE FUNCTION fn_work_schedule_check_branch() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_branch integer;
+BEGIN
+  SELECT branch_id INTO v_branch FROM shift WHERE shift_id = NEW.shift_id;
+  PERFORM fn_assert_employee_in_branch(NEW.employee_id, v_branch);
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_work_schedule_10_check_branch
+  BEFORE INSERT OR UPDATE OF employee_id, shift_id ON work_schedule
+  FOR EACH ROW EXECUTE FUNCTION fn_work_schedule_check_branch();
