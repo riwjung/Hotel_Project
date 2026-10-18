@@ -739,3 +739,79 @@ END $$;
 CREATE TRIGGER trg_promotion_10_lock_terms
   BEFORE UPDATE OF discount_type, discount_value, minimum_amount ON promotion
   FOR EACH ROW EXECUTE FUNCTION fn_promotion_lock_terms();
+
+
+-- ---------------------------------------------------------------------
+-- R11c · Shrinking a room type's capacity cannot strand an active stay
+--      (PENDING / CONFIRMED / CHECKED_IN): neither the guests already recorded
+--      in one room (R11a) nor a booking's guest_count (R11b) may end up over it.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_room_type_check_capacity() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_booking integer;
+BEGIN
+  IF NEW.capacity >= OLD.capacity THEN
+    RETURN NULL;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM guest g
+    JOIN booking_room br ON br.booking_room_id = g.booking_room_id
+    JOIN booking b       ON b.booking_id = br.booking_id
+    JOIN room r          ON r.room_id = br.room_id
+    WHERE r.room_type_id = NEW.room_type_id
+      AND b.booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')
+    GROUP BY br.booking_room_id
+    HAVING count(*) > NEW.capacity
+  ) THEN
+    RAISE EXCEPTION 'A % room in an active stay already holds more than % guest(s)', NEW.type_name, NEW.capacity;
+  END IF;
+
+  FOR v_booking IN
+    SELECT DISTINCT b.booking_id
+    FROM booking b
+    JOIN booking_room br ON br.booking_id = b.booking_id
+    JOIN room r          ON r.room_id = br.room_id
+    WHERE r.room_type_id = NEW.room_type_id
+      AND b.booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')
+  LOOP
+    PERFORM fn_assert_booking_capacity(v_booking);
+  END LOOP;
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_room_type_80_check_capacity
+  AFTER UPDATE OF capacity ON room_type
+  FOR EACH ROW EXECUTE FUNCTION fn_room_type_check_capacity();
+
+
+-- ---------------------------------------------------------------------
+-- R3d · A room's type or branch cannot change while it has active bookings
+--      (PENDING / CONFIRMED / CHECKED_IN): their booking_room.rate_id belongs to
+--      the old (branch, type), which R3 checked when they were made.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_room_check_retype() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_code booking.booking_code%TYPE;
+BEGIN
+  IF NEW.room_type_id = OLD.room_type_id AND NEW.branch_id = OLD.branch_id THEN
+    RETURN NEW;
+  END IF;
+  SELECT b.booking_code INTO v_code
+  FROM booking_room br JOIN booking b ON b.booking_id = br.booking_id
+  WHERE br.room_id = NEW.room_id AND b.booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')
+  ORDER BY b.check_in_date
+  LIMIT 1;
+  IF FOUND THEN
+    RAISE EXCEPTION 'Room % has active booking % — its type or branch cannot change until that stay is over',
+      OLD.room_number, v_code;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_room_20_check_retype
+  BEFORE UPDATE OF room_type_id, branch_id ON room
+  FOR EACH ROW EXECUTE FUNCTION fn_room_check_retype();

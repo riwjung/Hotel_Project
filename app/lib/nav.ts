@@ -66,9 +66,9 @@ export const NAV: NavGroup[] = [
     note: "03-modules/C-rooms.md",
     items: [
       { path: "/rooms", label: "Rooms", icon: "room", permission: "ROOM_VIEW", status: "ready", tables: ["room", "room_type", "branch"] },
-      { path: "/room-types", label: "Room Types", icon: "roomType", permission: "ROOM_VIEW", status: "planned", tables: ["room_type", "room_type_amenity"] },
-      { path: "/amenities", label: "Amenities", icon: "amenity", permission: "ROOM_VIEW", status: "planned", tables: ["amenity"] },
-      { path: "/room-rates", label: "Room Rates", icon: "rate", permission: "RATE_MANAGE", status: "planned", tables: ["room_rate"] },
+      { path: "/room-types", label: "Room Types", icon: "roomType", permission: "ROOM_VIEW", status: "ready", tables: ["room_type", "room_type_amenity"] },
+      { path: "/amenities", label: "Amenities", icon: "amenity", permission: "ROOM_VIEW", status: "ready", tables: ["amenity"] },
+      { path: "/room-rates", label: "Room Rates", icon: "rate", permission: "RATE_MANAGE", status: "ready", tables: ["room_rate"] },
     ],
   },
   {

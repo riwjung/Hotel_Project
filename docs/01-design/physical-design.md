@@ -90,13 +90,15 @@ updated: 2026-10-10
 | R14 | check-out แล้วลูกค้าได้แต้ม = floor(grand_total / 100) — แล้ว tier ขยับตาม R13 | trigger AFTER UPDATE OF booking_status … WHEN (→ CHECKED_OUT); อัตราอยู่ที่ `fn_points_for_amount()` ที่เดียว |
 | R17 | เงินไม่เกิน: รับชำระ (PAID) ≤ ยอดค้าง, คืนเงิน ≤ ยอดที่จ่ายสุทธิ; สถานะ PENDING → PAID/FAILED เท่านั้น (PAID/FAILED/REFUNDED final) | trigger BEFORE บน `payment` + `SELECT … FOR UPDATE` แถว booking กันสองเคาน์เตอร์รับเงินพร้อมกัน |
 | R18 | promotion ที่ booking ใช้แล้ว ห้ามเปลี่ยน discount_type / discount_value / minimum_amount (ยอดของ booking คำนวณจาก promotion แถวนั้น) | trigger BEFORE UPDATE OF … บน `promotion` |
+| R11c | ลด `room_type.capacity` ไม่ได้ถ้า stay ที่ยัง active (PENDING/CONFIRMED/CHECKED_IN) จะเกิน — ทั้งแขกที่บันทึกในห้องและ `guest_count` | trigger AFTER UPDATE OF capacity บน `room_type` (ใช้ `fn_assert_booking_capacity` ของ R11b ซ้ำ) |
+| R3d | เปลี่ยน type / สาขาของห้องไม่ได้ระหว่างมี booking ที่ active (rate ของ booking เป็นของ type เดิม) | trigger BEFORE UPDATE OF room_type_id, branch_id บน `room` |
 
 เมื่อเปลี่ยนวัน/สาขาของ booking → trigger "touch" แถว booking_room/booking_service → R3/R4/R12 ถูกตรวจซ้ำ + คิด night_count ใหม่อัตโนมัติ
 
 ส่วนลด: `discount_amount` = promotion + member rate % ของยอดที่เหลือ (`fn_booking_discounts`), อัตรา member เป็น snapshot
 ใน `booking.member_discount_rate` ตอนจอง — tier ที่เปลี่ยนทีหลังไม่ทำให้ยอดของ booking เก่าเปลี่ยน ([[ADR-006-member-tier-discount-and-derived-tier]])
 
-ทดสอบทั้งหมด: `npm run db:test` (45 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK;
+ทดสอบทั้งหมด: `npm run db:test` (49 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK;
 เทสต์ของ R11b ใช้ `SET CONSTRAINTS … IMMEDIATE` บังคับให้ deferred trigger ทำงานก่อน ROLLBACK)
 
 ## ยังไม่ได้บังคับ (backlog)

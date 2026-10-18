@@ -68,4 +68,5 @@ Hotel-Project/
 | ฟอร์มที่ผู้ใช้ระดับเครือต้องเลือกสาขา | `app/components/portal/branch/useBranchOptions.ts` |
 | dropdown พนักงาน | `GET /api/employees/options` + `employeeSelectOptions()` ใน `employee/employee.api.ts` |
 | parse query string ใน route | `parseQuery(req, schema)` ใน `app/lib/server/http.ts` |
+| เขียนข้อมูลกลางที่ทุกสาขาใช้ร่วม (room type, amenity, service catalog) | `requireChainScope(session, "Room types")` ใน `http.ts` — ผู้จัดการสาขาที่มี permission ก็แก้ไม่ได้ (เช็ค scope ไม่ใช่ role) |
 | ป้ายของรหัสที่ไม่ใช่สถานะ (`WALK_IN` → "Walk in") | `codeLabel()` ใน `app/lib/format.ts` |

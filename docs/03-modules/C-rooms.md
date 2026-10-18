@@ -1,7 +1,7 @@
 ---
 tags: [module]
 module: C
-status: in-progress
+status: done
 ---
 
 # C · ห้องพัก
@@ -15,10 +15,10 @@ status: in-progress
 ## หน้าจอ
 | path | สถานะ | permission |
 |---|---|---|
-| `/rooms` | ✅ read-only list + filter สาขา/สถานะ + legend | `ROOM_VIEW` |
-| `/room-types` | ⏳ | `ROOM_VIEW` / `ROOM_MANAGE` |
-| `/amenities` | ⏳ | `ROOM_VIEW` / `ROOM_MANAGE` |
-| `/room-rates` | ⏳ | `RATE_MANAGE` |
+| `/rooms` | ✅ list + filter + legend, สร้าง/แก้/ลบห้อง, เปลี่ยนสถานะด่วน | `ROOM_VIEW` / `ROOM_MANAGE` |
+| `/room-types` | ✅ CRUD + เลือก amenity (M:N) — แก้ได้เฉพาะ account ระดับเครือ | `ROOM_VIEW` / `ROOM_MANAGE` |
+| `/amenities` | ✅ CRUD + icon — แก้ได้เฉพาะ account ระดับเครือ | `ROOM_VIEW` / `ROOM_MANAGE` |
+| `/room-rates` | ✅ CRUD ต่อสาขา, ป้าย "In use today", ช่วงทับ → 409 (R1) | `RATE_MANAGE` |
 
 ## API
 | method | path | สถานะ |
@@ -26,8 +26,8 @@ status: in-progress
 | GET | `/api/rooms?branchId=&status=` | ✅ (branch scope บังคับฝั่ง server) |
 
 ## Backlog
-- [ ] Rooms: create/edit, เปลี่ยนสถานะด่วน (AVAILABLE ↔ CLEANING ↔ MAINTENANCE)
+- [x] Rooms: create/edit/delete, เปลี่ยนสถานะด่วน (ห้ามตั้ง/ปลด OCCUPIED เอง; ห้องที่ซ่อมค้างยัง MAINTENANCE ตาม R15; เปลี่ยน type ระหว่างมี booking ไม่ได้ R3d) — 2026-10-18
 - [ ] Room detail: Descriptions + gallery (`room_image`, cover 1 รูป)
-- [ ] Room types + amenity picker (checkbox → `room_type_amenity`)
-- [ ] Room rates: timeline ต่อ (branch, type) — แสดง error 23P01 "This period overlaps an existing one"
+- [x] Room types + amenity picker (checkbox → `room_type_amenity`, โน้ตเดิมยังอยู่); ลด capacity ใต้ stay ที่ active ไม่ได้ (R11c)
+- [x] Room rates: ตารางต่อ (branch, type) เรียงตามวัน + ป้าย "In use today"; ช่วงทับ → 409 "overlaps another active rate …" (R1)
 - [ ] หน้าตารางห้องว่าง (availability grid ห้อง × วัน) ← ใช้ร่วมกับ [[D-booking]]

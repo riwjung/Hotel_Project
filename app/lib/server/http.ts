@@ -2,7 +2,7 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import type { PermissionCode } from "@/app/lib/permissions";
-import { getSession, type Session } from "./auth";
+import { branchScope, getSession, type Session } from "./auth";
 
 // Error body shape for every API response: { error: { code, message } }.
 // `message` is written for end users — the UI shows it as-is.
@@ -138,6 +138,18 @@ export async function parseBody<S extends z.ZodType>(req: Request, schema: S): P
     throw new HttpError(400, "VALIDATION", `${field}${issue.message}`);
   }
   return parsed.data;
+}
+
+/**
+ * Master data shared by every branch (room types, amenities, the service catalog)
+ * may only be changed from a chain-level account — a branch manager holding the
+ * permission must not change what other branches sell. This is a scope check
+ * (branchScope), not a role check.
+ */
+export function requireChainScope(session: Session, what: string) {
+  if (branchScope(session) !== null) {
+    throw new HttpError(403, "CHAIN_ONLY", `${what} are shared by every branch, so only chain-level staff can change them`);
+  }
 }
 
 /** Parses the query string with zod; the first issue becomes a 400 with a readable message. */

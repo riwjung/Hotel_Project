@@ -41,6 +41,9 @@ export const BRANCH_STATUS: Record<BranchStatus, StatusMeta> = {
   INACTIVE: { label: "Inactive", color: "default", icon: <MinusCircleOutlined /> },
 };
 
+/** Any ACTIVE / INACTIVE code (rates, roles, service catalog …) — same look as branches. */
+export const ACTIVE_STATUS: Record<"ACTIVE" | "INACTIVE", StatusMeta> = BRANCH_STATUS;
+
 export const ROOM_STATUS: Record<RoomStatus, StatusMeta> = {
   AVAILABLE:      { label: "Available",      color: "green",   icon: <CheckCircleOutlined /> },
   OCCUPIED:       { label: "Occupied",       color: "blue",    icon: <UserOutlined /> },

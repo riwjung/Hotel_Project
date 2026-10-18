@@ -1,16 +1,14 @@
-import { z } from "zod";
-import { ROOM_STATUSES } from "@/app/components/portal/room/types";
 import { branchScope } from "@/app/lib/server/auth";
-import { HttpError, route } from "@/app/lib/server/http";
-import { listRooms } from "@/app/lib/server/repos/room.repo";
+import { parseQuery, route } from "@/app/lib/server/http";
+import { createRoom, getRoom, listRooms, roomFilterSchema, roomInputSchema } from "@/app/lib/server/repos/room.repo";
+import { withTx } from "@/app/lib/server/tx";
 
-const filterSchema = z.object({
-  branchId: z.coerce.number().int().positive().optional(),
-  status: z.enum(ROOM_STATUSES).optional(),
-});
+export const GET = route({ permission: "ROOM_VIEW" }, async ({ req, session }) =>
+  listRooms(branchScope(session), parseQuery(req, roomFilterSchema)),
+);
 
-export const GET = route({ permission: "ROOM_VIEW" }, async ({ req, session }) => {
-  const parsed = filterSchema.safeParse(Object.fromEntries(req.nextUrl.searchParams));
-  if (!parsed.success) throw new HttpError(400, "VALIDATION", "Invalid room filter");
-  return listRooms(branchScope(session), parsed.data);
+export const POST = route({ permission: "ROOM_MANAGE", body: roomInputSchema }, async ({ session, body }) => {
+  const scope = branchScope(session);
+  const room = await withTx(session, async (db) => getRoom(db, await createRoom(db, scope, body), scope));
+  return Response.json(room, { status: 201 });
 });

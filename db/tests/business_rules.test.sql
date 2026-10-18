@@ -741,3 +741,33 @@ BEGIN
   UPDATE promotion SET discount_value = 20 WHERE promotion_code = 'SONGKRAN15';       -- never used
   RAISE NOTICE 'PASS: R18 renaming a used promotion and re-pricing an unused one accepted';
 END $$;
+
+-- R11c · shrinking a room type's capacity cannot strand an active stay; growing it is fine
+DO $$
+BEGIN
+  BEGIN
+    UPDATE room_type SET capacity = 1 WHERE type_code = 'DLX';                 -- BK-0001 has 2 guests in DLX room 201
+    RAISE EXCEPTION 'FAIL: shrinking Deluxe below an in-house stay was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R11c capacity shrink below an active stay rejected — %', SQLERRM;
+  END;
+  UPDATE room_type SET capacity = 3 WHERE type_code = 'DLX';
+  UPDATE room_type SET capacity = 2 WHERE type_code = 'DLX';
+  RAISE NOTICE 'PASS: R11c growing (and restoring) a capacity accepted';
+END $$;
+
+-- R3d · a room's type cannot change while it has active bookings (their rates are for the old type)
+DO $$
+BEGIN
+  BEGIN
+    UPDATE room SET room_type_id = 1 WHERE room_id = 4;                         -- room 201, BK-0001 in house
+    RAISE EXCEPTION 'FAIL: retyping a room with an active booking was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R3d retyping a booked room rejected — %', SQLERRM;
+  END;
+  UPDATE room SET room_type_id = 3 WHERE room_id = 5;                           -- room 202 has no bookings
+  UPDATE room SET room_type_id = 2 WHERE room_id = 5;
+  RAISE NOTICE 'PASS: R3d retyping a room without bookings accepted';
+END $$;
