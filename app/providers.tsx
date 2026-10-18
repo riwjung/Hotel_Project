@@ -9,14 +9,31 @@ import enUS from "antd/locale/en_US";
 const themeConfig: ThemeConfig = {
   algorithm: antdTheme.defaultAlgorithm,
   token: {
-    colorPrimary: "#2f6bff",
+    // Sand & Sky deep champagne gold — 4.9:1 on white, so white button text and gold links pass AA.
+    colorPrimary: "#8a6c37",
+    // Info stays blue: it carries meaning (Alert info, notices), not brand.
     colorInfo: "#2f6bff",
+    colorLink: "#8a6c37",
     borderRadius: 8,
     fontFamily: "var(--font-body), var(--font-thai), system-ui, sans-serif",
   },
   components: {
-    Layout: { headerBg: "#ffffff", siderBg: "#ffffff", bodyBg: "#f4f6fb" },
-    Menu: { itemSelectedBg: "rgba(47, 107, 255, 0.12)", itemSelectedColor: "#1f4fd6" },
+    // Shell uses the Sand & Sky palette (globals.css): ivory "sand" Sider over the
+    // soft blue-grey "sky" body, champagne-gold accents taken from the logo.
+    Layout: { headerBg: "rgba(251, 248, 242, 0.82)", siderBg: "#fbf8f2", bodyBg: "#f4f6fb" },
+    Menu: {
+      itemBg: "transparent",
+      itemColor: "#5f5646",
+      itemHoverBg: "rgba(184, 151, 90, 0.08)",
+      itemHoverColor: "#3a3328",
+      itemSelectedBg: "rgba(184, 151, 90, 0.15)",
+      itemSelectedColor: "#7a5e2c",
+      groupTitleColor: "#b8975a",
+      groupTitleFontSize: 11,
+      itemHeight: 42,
+      itemBorderRadius: 10,
+      itemMarginInline: 12,
+    },
   },
 };
 

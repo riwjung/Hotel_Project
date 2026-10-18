@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Alert, Drawer, Grid, Layout, theme } from "antd";
+import { Alert, Drawer, Grid, Layout } from "antd";
 import { useSession } from "@/app/lib/auth-client";
 import PortalHeader from "./PortalHeader";
 import PortalNav from "./PortalNav";
@@ -14,7 +14,6 @@ export default function PortalShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { error } = useSession();
-  const { token } = theme.useToken();
 
   return (
     <Layout style={{ minHeight: "100dvh" }}>
@@ -29,7 +28,9 @@ export default function PortalShell({ children }: { children: ReactNode }) {
             top: 0,
             height: "100dvh",
             overflow: "auto",
-            borderInlineEnd: `1px solid ${token.colorBorderSecondary}`,
+            borderInlineEnd: "1px solid var(--hairline)",
+            boxShadow: "4px 0 24px rgba(138, 108, 55, 0.06)",
+            zIndex: 11,
           }}
         >
           <PortalNav collapsed={collapsed} />
@@ -43,7 +44,7 @@ export default function PortalShell({ children }: { children: ReactNode }) {
           onClose={() => setDrawerOpen(false)}
           size={280}
           closable={false}
-          styles={{ body: { padding: 0 } }}
+          styles={{ body: { padding: 0, background: "var(--ivory)" } }}
         >
           <PortalNav onNavigate={() => setDrawerOpen(false)} />
         </Drawer>

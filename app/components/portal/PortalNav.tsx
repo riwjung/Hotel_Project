@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Skeleton, Tag, Typography, theme, type MenuProps } from "antd";
+import { Menu, Skeleton, Tag, type MenuProps } from "antd";
+import BrandLogo from "@/app/components/brand/BrandLogo";
 import { useSession } from "@/app/lib/auth-client";
 import { NAV, findNavItem } from "@/app/lib/nav";
 import { NAV_ICONS } from "./nav-icons";
@@ -12,69 +13,90 @@ type Props = {
   onNavigate?: () => void;
 };
 
+/** Gold shoreline lines under the menu — echoes the wave in the logo. Purely decorative. */
+function Shoreline({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 248 80"
+      preserveAspectRatio="none"
+      fill="none"
+      stroke="var(--gold)"
+      style={{ display: "block", width: "100%", height: collapsed ? 40 : 80, marginTop: "auto", pointerEvents: "none" }}
+    >
+      <path d="M0 38 C 40 26, 80 50, 124 38 S 208 26, 248 38" strokeOpacity="0.35" />
+      <path d="M0 52 C 50 42, 90 64, 140 52 S 220 44, 248 50" strokeOpacity="0.22" />
+      <path d="M0 66 C 60 58, 110 74, 160 66 S 228 60, 248 64" strokeOpacity="0.12" />
+    </svg>
+  );
+}
+
 /** Brand + menu. Rendered inside the desktop Sider and the mobile Drawer. */
 export default function PortalNav({ collapsed = false, onNavigate }: Props) {
   const pathname = usePathname();
   const { user, loading, can } = useSession();
-  const { token } = theme.useToken();
+  const selected = findNavItem(pathname)?.path;
 
   // Hide what the role cannot open; drop groups that end up empty.
-  const items: MenuProps["items"] = NAV.map((group) => {
+  const groups = NAV.map((group) => {
     const children = group.items
       .filter((item) => can(item.permission))
       .map((item) => ({
         key: item.path,
         icon: NAV_ICONS[item.icon],
         label: (
-          <Link href={item.path} onClick={onNavigate}>
-            {item.label}
+          <Link href={item.path} onClick={onNavigate} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</span>
             {item.status === "planned" && !collapsed && (
-              <Tag variant="filled" style={{ marginInlineStart: 8, fontSize: 11 }}>
+              <Tag
+                variant="filled"
+                style={{
+                  marginInlineEnd: 0,
+                  fontSize: 10,
+                  lineHeight: "16px",
+                  letterSpacing: "0.04em",
+                  background: "var(--sand-paper)",
+                  color: "var(--ink-muted)",
+                }}
+              >
                 soon
               </Tag>
+            )}
+            {item.path === selected && (
+              <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)", flexShrink: 0 }} />
             )}
           </Link>
         ),
       }));
-    return children.length ? { type: "group" as const, key: group.module, label: group.label, children } : null;
+    return children.length
+      ? {
+          type: "group" as const,
+          key: group.module,
+          label: <span style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontWeight: 600 }}>{group.label}</span>,
+          children,
+        }
+      : null;
   }).filter((g) => g !== null);
 
-  const selected = findNavItem(pathname)?.path;
+  // Collapsed rail: group titles would truncate to "OVERVI…", so swap them for thin dividers.
+  const items: MenuProps["items"] = collapsed
+    ? groups.flatMap((g, i) => [...(i ? [{ type: "divider" as const, key: `d-${g.key}` }] : []), ...g.children])
+    : groups;
 
   return (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: "var(--ivory)" }}>
       <div
         style={{
-          height: 64,
+          height: 80,
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          paddingInline: collapsed ? 0 : 20,
+          paddingInline: collapsed ? 0 : 22,
           justifyContent: collapsed ? "center" : "flex-start",
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          borderBottom: "1px solid var(--hairline)",
+          flexShrink: 0,
         }}
       >
-        <div
-          aria-hidden
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: token.colorPrimary,
-            color: "#fff",
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
-        >
-          H
-        </div>
-        {!collapsed && (
-          <Typography.Text strong className="font-display" style={{ fontSize: 18 }}>
-            Hotel Portal
-          </Typography.Text>
-        )}
+        <BrandLogo markOnly={collapsed} />
       </div>
 
       {loading || !user ? (
@@ -86,9 +108,11 @@ export default function PortalNav({ collapsed = false, onNavigate }: Props) {
           mode="inline"
           items={items}
           selectedKeys={selected ? [selected] : []}
-          style={{ borderInlineEnd: "none", paddingBlock: 8 }}
+          style={{ borderInlineEnd: "none", paddingBlock: 12, background: "transparent" }}
         />
       )}
-    </>
+
+      <Shoreline collapsed={collapsed} />
+    </div>
   );
 }

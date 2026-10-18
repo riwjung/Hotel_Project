@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Alert, Button, Card, Form, Input, Typography } from "antd";
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
+import BrandLogo from "@/app/components/brand/BrandLogo";
 import { api } from "@/app/lib/api-client";
 
 type Values = { email: string; password: string };
@@ -31,11 +32,17 @@ export default function LoginForm() {
   };
 
   return (
-    <Card variant="outlined" style={{ width: "100%", maxWidth: 400 }}>
-      <Typography.Title level={2} className="font-display" style={{ marginTop: 0, marginBottom: 4 }}>
-        Hotel Portal
-      </Typography.Title>
-      <Typography.Paragraph type="secondary">Sign in with your staff account.</Typography.Paragraph>
+    <Card
+      variant="outlined"
+      style={{ width: "100%", maxWidth: 400, background: "var(--ivory)", borderColor: "var(--hairline)" }}
+      styles={{ body: { padding: "36px 32px 32px" } }}
+    >
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+        <BrandLogo layout="stacked" />
+      </div>
+      <Typography.Paragraph type="secondary" style={{ textAlign: "center", marginBottom: 24 }}>
+        Staff portal — sign in with your staff account.
+      </Typography.Paragraph>
 
       {error && <Alert type="error" showIcon title={error} style={{ marginBottom: 16 }} />}
 

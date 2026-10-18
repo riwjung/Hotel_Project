@@ -19,7 +19,7 @@ description: Use when building or extending an internal workflow portal that sho
 
 | | `antd-minimal-portal-ui` (ไฟล์นี้) | `lcr-web-ui-standard` (`UISkill.md`) |
 |---|---|---|
-| โทน | สว่าง เทาอมฟ้า `#f4f6fb` + น้ำเงิน `#2f6bff` | navy เข้ม + ส้ม |
+| โทน | Sand & Sky — sidebar งาช้าง `#fbf8f2` + ทองแชมเปญ `#8a6c37` บนพื้นเทาอมฟ้า `#f4f6fb` | navy เข้ม + ส้ม |
 | CSS | AntD + CSS Modules · **ไม่มี Tailwind** | AntD + Tailwind v4 |
 | เหมาะกับ | workflow / approval / ตารางเยอะ | tool ภายในทั่วไป, dashboard ที่ต้องการ brand จัด |
 
@@ -48,14 +48,15 @@ description: Use when building or extending an internal workflow portal that sho
 const themeConfig = {
   algorithm: antdTheme.defaultAlgorithm,
   token: {
-    colorPrimary: "#2f6bff",
-    colorInfo:    "#2f6bff",
+    colorPrimary: "#8a6c37",   // Sand & Sky gold — 4.9:1 บนขาว ผ่าน AA
+    colorInfo:    "#2f6bff",   // info ยังเป็นน้ำเงิน เพราะมีความหมาย ไม่ใช่แบรนด์
+    colorLink:    "#8a6c37",
     borderRadius: 8,
     fontFamily: "var(--font-body), var(--font-thai), system-ui, sans-serif",
   },
   components: {
-    Layout: { headerBg: "#ffffff", siderBg: "#ffffff", bodyBg: "#f4f6fb" },
-    Menu:   { itemSelectedBg: "rgba(47, 107, 255, 0.12)", itemSelectedColor: "#1f4fd6" },
+    Layout: { headerBg: "rgba(251, 248, 242, 0.82)", siderBg: "#fbf8f2", bodyBg: "#f4f6fb" },
+    Menu:   { itemSelectedBg: "rgba(184, 151, 90, 0.15)", itemSelectedColor: "#7a5e2c", groupTitleColor: "#b8975a", ... },
   },
 };
 
@@ -82,8 +83,8 @@ pagination, Upload, Empty ถ้าตั้ง locale ผิดจะได้ 
   --text:          #0e1726;
   --muted:         #506690;
   --border:        #e2e8f1;
-  --accent:        #2f6bff;
-  --accent-strong: #1f4fd6;
+  --accent:        #8a6c37;   /* = colorPrimary */
+  --accent-strong: #6f5629;
 }
 ```
 
@@ -93,6 +94,15 @@ pagination, Upload, Empty ถ้าตั้ง locale ผิดจะได้ 
 · `Noto_Sans_Thai` (ไทย) ประกาศเป็น CSS variable แล้วให้ antd token อ้างต่อ
 
 ---
+
+### แบรนด์ Sand & Sky
+
+- โลโก้คือ `app/components/brand/BrandLogo.tsx` (SVG เส้นทอง วาดจากโลโก้จริง) — ห้ามใช้รูป PNG/JPG
+  แบบ: `layout="inline"` (sidebar) · `layout="stacked"` (login) · `markOnly` (sidebar ตอนยุบ)
+- ตัวอักษรแบรนด์ `Marcellus` (`--font-brand`) ใช้เฉพาะ wordmark และชื่อหน้าใน header
+- สีแบรนด์อยู่ใน `globals.css`: `--ivory` `--sand-paper` `--gold-light` `--gold` `--gold-deep` `--ink` `--ink-muted` `--hairline`
+- ทองอ่อน `--gold` (`#b8975a`) ใช้กับเส้น/ของตกแต่งเท่านั้น — **ข้อความสีทองต้องใช้ `--gold-deep`/`colorPrimary`** ไม่งั้น contrast ไม่ผ่าน
+- สีสถานะ (§6) **ไม่เปลี่ยนตามแบรนด์** — สีของสถานะแปลว่าความหมาย
 
 ## 4. โครงหน้า
 

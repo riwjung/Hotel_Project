@@ -7,8 +7,18 @@
   --text: #0e1726;
   --muted: #506690;
   --border: #e2e8f1;
-  --accent: #2f6bff;
-  --accent-strong: #1f4fd6;
+  --accent: #8a6c37;        /* = antd colorPrimary (Sand & Sky gold) */
+  --accent-strong: #6f5629;
+
+  /* Sand & Sky brand palette — logo, Sider, Header, login (app/components/brand). */
+  --ivory: #fbf8f2;         /* sider / header surface — the logo's paper */
+  --sand-paper: #f4ede0;    /* soft fills: branch pill, hover */
+  --gold-light: #ead9b2;    /* sun fill */
+  --gold: #b8975a;          /* champagne gold — lines, group titles, markers */
+  --gold-deep: #8a6c37;     /* wordmark, selected text — gold that passes contrast */
+  --ink: #3a3328;           /* warm text on ivory */
+  --ink-muted: #8b806d;
+  --hairline: rgba(184, 151, 90, 0.22);
 }
 
 *,
