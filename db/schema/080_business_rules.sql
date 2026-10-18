@@ -924,3 +924,65 @@ END $$;
 CREATE TRIGGER trg_service_assignment_30_check_order
   BEFORE INSERT OR UPDATE OF booking_service_id ON service_assignment
   FOR EACH ROW EXECUTE FUNCTION fn_service_assignment_check_order();
+
+
+-- ---------------------------------------------------------------------
+-- R20 · Someone can always manage roles
+--      After any change to grants, role status or employees there must still be
+--      an ACTIVE employee in an ACTIVE role that holds ROLE_MANAGE — otherwise
+--      nobody could ever fix permissions again. Statement-level, so one change
+--      touching many rows is checked once, at its end state.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_assert_role_manager_exists() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM employee e
+    JOIN role r             ON r.role_id = e.role_id
+    JOIN role_permission rp ON rp.role_id = r.role_id
+    JOIN permission p       ON p.permission_id = rp.permission_id
+    WHERE p.permission_code = 'ROLE_MANAGE'
+      AND r.role_status = 'ACTIVE'
+      AND e.employee_status = 'ACTIVE'
+  ) THEN
+    RAISE EXCEPTION 'This would leave nobody able to manage roles — give another active role and employee Roles & Permissions first';
+  END IF;
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_role_permission_90_keep_role_manager
+  AFTER DELETE OR UPDATE ON role_permission
+  FOR EACH STATEMENT EXECUTE FUNCTION fn_assert_role_manager_exists();
+
+CREATE TRIGGER trg_role_90_keep_role_manager
+  AFTER UPDATE OF role_status ON role
+  FOR EACH STATEMENT EXECUTE FUNCTION fn_assert_role_manager_exists();
+
+CREATE TRIGGER trg_employee_90_keep_role_manager
+  AFTER UPDATE OF employee_status, role_id OR DELETE ON employee
+  FOR EACH STATEMENT EXECUTE FUNCTION fn_assert_role_manager_exists();
+
+
+-- ---------------------------------------------------------------------
+-- R2b · An employee's manager works at the same branch, or is chain-level
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_employee_check_manager() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_branch integer;
+  v_name   text;
+BEGIN
+  IF NEW.manager_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  SELECT branch_id, first_name || ' ' || last_name INTO v_branch, v_name FROM employee WHERE employee_id = NEW.manager_id;
+  IF v_branch IS NOT NULL AND v_branch IS DISTINCT FROM NEW.branch_id THEN
+    RAISE EXCEPTION '% works at another branch and cannot be this employee''s manager', v_name;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_employee_20_check_manager
+  BEFORE INSERT OR UPDATE OF manager_id, branch_id ON employee
+  FOR EACH ROW EXECUTE FUNCTION fn_employee_check_manager();

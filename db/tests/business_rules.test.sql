@@ -831,3 +831,47 @@ BEGIN
     RAISE EXCEPTION 'FAIL: only % of 5 order violations rejected', v_rejected;
   END IF;
 END $$;
+
+-- R20 · someone must always be able to manage roles: an ACTIVE employee in an ACTIVE role holding ROLE_MANAGE
+DO $$
+DECLARE
+  v_rejected  integer := 0;
+  v_role_mgmt integer := (SELECT permission_id FROM permission WHERE permission_code = 'ROLE_MANAGE');
+BEGIN
+  BEGIN   -- take ROLE_MANAGE away from OWNER, the only role that has it
+    DELETE FROM role_permission WHERE role_id = 1 AND permission_id = v_role_mgmt;
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- deactivate the OWNER role
+    UPDATE role SET role_status = 'INACTIVE' WHERE role_id = 1;
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- the only owner resigns
+    UPDATE employee SET employee_status = 'RESIGNED' WHERE employee_id = 1;
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+
+  -- once managers can manage roles too, the owner role may give it up
+  INSERT INTO role_permission (role_id, permission_id) VALUES (2, v_role_mgmt);
+  DELETE FROM role_permission WHERE role_id = 1 AND permission_id = v_role_mgmt;
+
+  IF v_rejected = 3 THEN
+    RAISE NOTICE 'PASS: R20 revoke / deactivate / resign that would leave nobody to manage roles rejected; handing it over accepted';
+  ELSE
+    RAISE EXCEPTION 'FAIL: only % of 3 lock-outs rejected', v_rejected;
+  END IF;
+END $$;
+
+-- R2b · an employee's manager works at the same branch (or is chain-level, like the owner)
+DO $$
+BEGIN
+  BEGIN
+    UPDATE employee SET manager_id = 6 WHERE employee_id = 3;                  -- BKK staff under the CNX manager
+    RAISE EXCEPTION 'FAIL: a manager from another branch was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R2b manager from another branch rejected — %', SQLERRM;
+  END;
+  UPDATE employee SET manager_id = 1 WHERE employee_id = 3;                    -- the owner may manage anyone
+  RAISE NOTICE 'PASS: R2b chain-level manager accepted';
+END $$;

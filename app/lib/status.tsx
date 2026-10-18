@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import {
+  ApartmentOutlined,
   ArrowDownOutlined,
   ArrowUpOutlined,
+  BankOutlined,
+  CoffeeOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
   CheckOutlined,
@@ -37,6 +40,8 @@ import type { ReviewStatus } from "@/app/components/portal/review/types";
 import type { OrderStatus } from "@/app/components/portal/service-order/types";
 import type { AssignmentStatus } from "@/app/components/portal/assignment/types";
 import type { SkillLevel } from "@/app/components/portal/skill/types";
+import type { EmployeeStatus } from "@/app/components/portal/employee/types";
+import type { ScopeLevel } from "@/app/lib/permissions";
 
 // Status palettes: DB stores the code, the UI shows label + color + icon.
 // Color is never the only signal (icon + label too). Key order = workflow order,
@@ -133,6 +138,18 @@ export const SKILL_LEVEL: Record<SkillLevel, StatusMeta> = {
   JUNIOR: { label: "Junior", color: "default", icon: <StarOutlined /> },
   SENIOR: { label: "Senior", color: "blue",    icon: <RiseOutlined /> },
   EXPERT: { label: "Expert", color: "gold",    icon: <CrownOutlined /> },
+};
+
+export const EMPLOYEE_STATUS: Record<EmployeeStatus, StatusMeta> = {
+  ACTIVE:   { label: "Active",   color: "green",   icon: <CheckCircleOutlined /> },
+  ON_LEAVE: { label: "On leave", color: "gold",    icon: <CoffeeOutlined /> },
+  RESIGNED: { label: "Resigned", color: "default", icon: <UserDeleteOutlined /> },
+};
+
+// Role scope is a coded value (role.scope_level), rendered the same way.
+export const SCOPE_LEVEL: Record<ScopeLevel, StatusMeta> = {
+  CHAIN:  { label: "Whole chain", color: "purple", icon: <ApartmentOutlined /> },
+  BRANCH: { label: "One branch",  color: "blue",   icon: <BankOutlined /> },
 };
 
 /** Options for a status filter <Select>, in workflow order. */

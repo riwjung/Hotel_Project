@@ -46,8 +46,8 @@ export const NAV: NavGroup[] = [
     note: "03-modules/A-org-access.md",
     items: [
       { path: "/branches", label: "Branches", icon: "branch", permission: "BRANCH_VIEW", status: "ready", tables: ["branch"] },
-      { path: "/employees", label: "Employees", icon: "team", permission: "EMPLOYEE_VIEW", status: "planned", tables: ["employee"] },
-      { path: "/roles", label: "Roles & Permissions", icon: "safety", permission: "ROLE_MANAGE", status: "planned", tables: ["role", "permission", "role_permission"] },
+      { path: "/employees", label: "Employees", icon: "team", permission: "EMPLOYEE_VIEW", status: "ready", tables: ["employee"] },
+      { path: "/roles", label: "Roles & Permissions", icon: "safety", permission: "ROLE_MANAGE", status: "ready", tables: ["role", "permission", "role_permission"] },
     ],
   },
   {

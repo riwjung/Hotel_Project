@@ -1,7 +1,7 @@
 ---
 tags: [module]
 module: A
-status: in-progress
+status: done
 ---
 
 # A · องค์กร & สิทธิ์เข้าถึง
@@ -15,8 +15,8 @@ owner = แถวใน `employee` ที่ role `OWNER`, `scope_level='CHAIN'`
 | path | สถานะ | permission |
 |---|---|---|
 | `/branches` | ✅ CRUD เต็ม (reference pattern) | `BRANCH_VIEW` / `BRANCH_MANAGE` |
-| `/employees` | ⏳ | `EMPLOYEE_VIEW` / `EMPLOYEE_MANAGE` |
-| `/roles` | ⏳ | `ROLE_MANAGE` |
+| `/employees` | ✅ list/filter, สร้าง/แก้ (สถานะแทนการลบ), reset password | `EMPLOYEE_VIEW` / `EMPLOYEE_MANAGE` |
+| `/roles` | ✅ roles CRUD + matrix role × permission (checkbox) | `ROLE_MANAGE` |
 
 ## API
 | method | path | สถานะ |
@@ -26,8 +26,10 @@ owner = แถวใน `employee` ที่ role `OWNER`, `scope_level='CHAIN'`
 | POST | `/api/auth/login` · `/api/auth/logout` · GET `/api/auth/me` | ✅ |
 
 ## Backlog
-- [ ] Employees: list (filter สาขา/role/สถานะ), create/edit, reset password, เปลี่ยน manager
-- [ ] แสดง error ของ R2 ตอนเลือก role CHAIN แล้วใส่สาขา (ข้อความมาจาก trigger อยู่แล้ว)
-- [ ] Roles & Permissions: matrix role × permission (checkbox) → `role_permission`
+- [x] Employees: list (filter สาขา/สถานะ + ค้นหา), create/edit, reset password, เปลี่ยน manager (R2b) — 2026-10-18
+  - กัน privilege escalation: ให้ role ได้เฉพาะที่สิทธิ์ ⊆ สิทธิ์ของผู้ให้ (manager ตั้ง owner ไม่ได้, reset รหัสคนที่สิทธิ์สูงกว่าไม่ได้)
+  - ไม่มีปุ่มลบ: booking/งาน/log อ้างถึงพนักงาน → ใช้สถานะ RESIGNED (login ไม่ได้)
+- [x] แสดง error ของ R2 ตอนเลือก role CHAIN แล้วใส่สาขา (ฟอร์มปิดช่องสาขาเมื่อเลือก role ระดับเครือ)
+- [x] Roles & Permissions: matrix role × permission (checkbox) → `role_permission`; R20 กันถอน ROLE_MANAGE คนสุดท้าย; มีผลเมื่อ login ใหม่ (ADR-004)
 - [ ] Branch detail: Descriptions + จำนวนห้อง/พนักงาน/booking ที่ active
 - [ ] Header branch switcher สำหรับ OWNER (เลือกดูทีละสาขาทั้งแอป)
