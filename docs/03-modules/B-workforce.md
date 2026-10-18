@@ -1,7 +1,7 @@
 ---
 tags: [module]
 module: B
-status: planned
+status: done
 ---
 
 # B · กำลังคน & เวลาทำงาน
@@ -16,12 +16,12 @@ status: planned
 ## หน้าจอ
 | path | สถานะ | permission |
 |---|---|---|
-| `/shifts` | ⏳ | `SCHEDULE_VIEW` / `SCHEDULE_MANAGE` |
-| `/schedules` | ⏳ | `SCHEDULE_VIEW` / `SCHEDULE_MANAGE` |
-| `/attendance` | ⏳ | `ATTENDANCE_VIEW` / `ATTENDANCE_MANAGE` |
+| `/shifts` | ✅ CRUD ต่อสาขา (overnight) | `SCHEDULE_VIEW` / `SCHEDULE_MANAGE` |
+| `/schedules` | ✅ ตารางสัปดาห์ พนักงาน × วัน, เพิ่มกะ, ยกเลิก/คืน/ทำเครื่องหมายขาด | `SCHEDULE_VIEW` / `SCHEDULE_MANAGE` |
+| `/attendance` | ✅ กะของฉัน (clock in/out), ตารางรายวัน + แก้ไข, รายงานรายเดือน | `ATTENDANCE_VIEW` / `ATTENDANCE_MANAGE` |
 
 ## Backlog
-- [ ] Shifts CRUD ต่อสาขา
-- [ ] Schedule: ตารางสัปดาห์ (พนักงาน × วัน) — อาจต้อง CSS Module สำหรับ grid (ui-standard อนุญาต)
-- [ ] Attendance: clock-in/out, คำนวณ LATE จาก shift.start_time (+ grace period?)
-- [ ] รายงานขาด/สายรายเดือน (query ข้าม 3 ตาราง — เหมาะใส่ในรายงานวิชา)
+- [x] Shifts CRUD ต่อสาขา — 2026-10-18
+- [x] Schedule: ตารางสัปดาห์ (พนักงาน × วัน) ด้วย antd Table (ไม่ต้องใช้ CSS Module); กะทับเวลาไม่ได้ (R21)
+- [x] Attendance: clock-in/out (ของตัวเอง หรือผู้มี ATTENDANCE_MANAGE แก้ให้), สถานะคำนวณใน DB ผ่อนผัน 5 นาที (R22)
+- [x] รายงานขาด/สายรายเดือน — view `v_attendance_monthly` (work_schedule × employee × attendance × shift)

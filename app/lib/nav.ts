@@ -55,9 +55,9 @@ export const NAV: NavGroup[] = [
     label: "Workforce",
     note: "03-modules/B-workforce.md",
     items: [
-      { path: "/shifts", label: "Shifts", icon: "clock", permission: "SCHEDULE_VIEW", status: "planned", tables: ["shift"] },
-      { path: "/schedules", label: "Work Schedules", icon: "calendar", permission: "SCHEDULE_VIEW", status: "planned", tables: ["work_schedule"] },
-      { path: "/attendance", label: "Attendance", icon: "check", permission: "ATTENDANCE_VIEW", status: "planned", tables: ["attendance"] },
+      { path: "/shifts", label: "Shifts", icon: "clock", permission: "SCHEDULE_VIEW", status: "ready", tables: ["shift"] },
+      { path: "/schedules", label: "Work Schedules", icon: "calendar", permission: "SCHEDULE_VIEW", status: "ready", tables: ["work_schedule"] },
+      { path: "/attendance", label: "Attendance", icon: "check", permission: "ATTENDANCE_VIEW", status: "ready", tables: ["attendance"] },
     ],
   },
   {

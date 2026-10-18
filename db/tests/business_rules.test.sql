@@ -875,3 +875,68 @@ BEGIN
   UPDATE employee SET manager_id = 1 WHERE employee_id = 3;                    -- the owner may manage anyone
   RAISE NOTICE 'PASS: R2b chain-level manager accepted';
 END $$;
+
+-- R21 · an employee's shifts may not overlap in time (back-to-back and cancelled shifts are fine)
+DO $$
+DECLARE
+  v_mid      integer;
+  v_rejected boolean := false;
+BEGIN
+  INSERT INTO shift (branch_id, shift_name, start_time, end_time) VALUES (1, 'Mid', '12:00', '20:00')
+  RETURNING shift_id INTO v_mid;
+  BEGIN   -- Darin already works the Evening shift (15:00–23:00) today
+    INSERT INTO work_schedule (employee_id, shift_id, work_date) VALUES (4, v_mid, current_date);
+  EXCEPTION WHEN raise_exception THEN v_rejected := true;
+  END;
+  -- Chai works Morning today (07:00–15:00); last night's Night shift (23:00–07:00) ends exactly as it starts
+  INSERT INTO work_schedule (employee_id, shift_id, work_date) VALUES (3, 3, current_date - 1);
+  -- once Darin's Evening shift is cancelled, the Mid shift fits
+  UPDATE work_schedule SET schedule_status = 'CANCELLED' WHERE schedule_id = 2;
+  INSERT INTO work_schedule (employee_id, shift_id, work_date) VALUES (4, v_mid, current_date);
+  IF v_rejected THEN
+    RAISE NOTICE 'PASS: R21 overlapping shift rejected; overnight back-to-back and replacing a cancelled shift accepted';
+  ELSE
+    RAISE EXCEPTION 'FAIL: an overlapping shift was accepted';
+  END IF;
+END $$;
+
+-- R22 · attendance status comes from the clock times (5-minute grace); the shift's status follows
+DO $$
+DECLARE
+  v_late    attendance.attendance_status%TYPE;
+  v_done    work_schedule.schedule_status%TYPE;
+  v_absent  attendance.attendance_status%TYPE;
+  v_absent_schedule work_schedule.schedule_status%TYPE;
+BEGIN
+  -- Ekkachai, Morning 07:00–15:00 today: in at 07:20 → LATE, then clocks out → shift COMPLETED
+  INSERT INTO attendance (schedule_id, clock_in, attendance_status) VALUES (3, current_date + time '07:20', 'ON_TIME');
+  UPDATE attendance SET clock_out = current_date + time '15:00' WHERE schedule_id = 3;
+  SELECT attendance_status INTO v_late FROM attendance WHERE schedule_id = 3;
+  SELECT schedule_status INTO v_done FROM work_schedule WHERE schedule_id = 3;
+
+  -- Itsara (HKT Morning) never clocked in → ABSENT, and so is the shift
+  INSERT INTO attendance (schedule_id, attendance_status) VALUES (7, 'ON_TIME');
+  SELECT attendance_status INTO v_absent FROM attendance WHERE schedule_id = 7;
+  SELECT schedule_status INTO v_absent_schedule FROM work_schedule WHERE schedule_id = 7;
+
+  IF v_late = 'LATE' AND v_done = 'COMPLETED' AND v_absent = 'ABSENT' AND v_absent_schedule = 'ABSENT' THEN
+    RAISE NOTICE 'PASS: R22 07:20 → LATE (shift completed at clock-out); no clock-in → ABSENT';
+  ELSE
+    RAISE EXCEPTION 'FAIL: late=% done=% absent=% schedule=%', v_late, v_done, v_absent, v_absent_schedule;
+  END IF;
+END $$;
+
+-- R22 · leaving more than 5 minutes early is EARLY_LEAVE (Gade, CNX Morning 07:00–15:00)
+DO $$
+DECLARE
+  v_status attendance.attendance_status%TYPE;
+BEGIN
+  INSERT INTO attendance (schedule_id, clock_in, clock_out, attendance_status)
+  VALUES (8, current_date + time '06:58', current_date + time '13:30', 'ON_TIME')
+  RETURNING attendance_status INTO v_status;
+  IF v_status = 'EARLY_LEAVE' THEN
+    RAISE NOTICE 'PASS: R22 out at 13:30 from a 15:00 shift → EARLY_LEAVE';
+  ELSE
+    RAISE EXCEPTION 'FAIL: early leave recorded as %', v_status;
+  END IF;
+END $$;

@@ -986,3 +986,129 @@ END $$;
 CREATE TRIGGER trg_employee_20_check_manager
   BEFORE INSERT OR UPDATE OF manager_id, branch_id ON employee
   FOR EACH ROW EXECUTE FUNCTION fn_employee_check_manager();
+
+
+-- ---------------------------------------------------------------------
+-- R21 · An employee's shifts may not overlap in time
+--      A shift on work_date covers [work_date + start, work_date + end), plus a
+--      day when it is overnight, so Night 23:00–07:00 then Morning 07:00 is fine.
+--      Cancelled shifts do not count. The employee row is locked so two planners
+--      cannot double-book the same person at once. Moving a shift's hours is
+--      checked against everyone already scheduled on it.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_shift_period(p_work_date date, p_shift_id integer) RETURNS tsrange
+LANGUAGE sql STABLE AS $$
+  SELECT tsrange(
+    p_work_date + s.start_time,
+    p_work_date + s.end_time + CASE WHEN s.is_overnight THEN interval '1 day' ELSE interval '0' END,
+    '[)')
+  FROM shift s WHERE s.shift_id = p_shift_id
+$$;
+
+CREATE FUNCTION fn_assert_no_shift_overlap(p_schedule_id integer, p_employee_id integer, p_work_date date, p_shift_id integer)
+RETURNS void
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_other  text;
+BEGIN
+  SELECT s.shift_name || ' shift on ' || to_char(ws.work_date, 'FMDD Mon') INTO v_other
+  FROM work_schedule ws
+  JOIN shift s ON s.shift_id = ws.shift_id
+  WHERE ws.employee_id = p_employee_id
+    AND ws.schedule_id IS DISTINCT FROM p_schedule_id
+    AND ws.schedule_status <> 'CANCELLED'
+    AND ws.work_date BETWEEN p_work_date - 1 AND p_work_date + 1
+    AND fn_shift_period(ws.work_date, ws.shift_id) && fn_shift_period(p_work_date, p_shift_id)
+  LIMIT 1;
+  IF FOUND THEN
+    RAISE EXCEPTION 'The employee already works the % — shifts may not overlap', v_other;
+  END IF;
+END $$;
+
+CREATE FUNCTION fn_work_schedule_check_overlap() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.schedule_status = 'CANCELLED' THEN
+    RETURN NEW;
+  END IF;
+  PERFORM 1 FROM employee WHERE employee_id = NEW.employee_id FOR UPDATE;
+  PERFORM fn_assert_no_shift_overlap(NEW.schedule_id, NEW.employee_id, NEW.work_date, NEW.shift_id);
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_work_schedule_20_check_overlap
+  BEFORE INSERT OR UPDATE OF employee_id, shift_id, work_date, schedule_status ON work_schedule
+  FOR EACH ROW EXECUTE FUNCTION fn_work_schedule_check_overlap();
+
+CREATE FUNCTION fn_shift_recheck_schedules() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v record;
+BEGIN
+  FOR v IN
+    SELECT schedule_id, employee_id, work_date FROM work_schedule
+    WHERE shift_id = NEW.shift_id AND schedule_status = 'SCHEDULED' AND work_date >= current_date
+  LOOP
+    PERFORM fn_assert_no_shift_overlap(v.schedule_id, v.employee_id, v.work_date, NEW.shift_id);
+  END LOOP;
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_shift_80_recheck_schedules
+  AFTER UPDATE OF start_time, end_time, is_overnight ON shift
+  FOR EACH ROW EXECUTE FUNCTION fn_shift_recheck_schedules();
+
+
+-- ---------------------------------------------------------------------
+-- R22 · Attendance status is derived from the clock times
+--      no clock-in → ABSENT · in > start + 5 min → LATE ·
+--      out < end − 5 min → EARLY_LEAVE · otherwise ON_TIME
+--      (the status sent by the app is overwritten). The shift follows:
+--      ABSENT → ABSENT, clocked out → COMPLETED, otherwise still SCHEDULED.
+--      A cancelled shift takes no attendance.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_attendance_derive_status() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_period  tsrange;
+  v_status  work_schedule.schedule_status%TYPE;
+  v_grace   constant interval := interval '5 minutes';
+BEGIN
+  SELECT fn_shift_period(ws.work_date, ws.shift_id), ws.schedule_status INTO v_period, v_status
+  FROM work_schedule ws WHERE ws.schedule_id = NEW.schedule_id;
+
+  IF v_status = 'CANCELLED' THEN
+    RAISE EXCEPTION 'This shift was cancelled, so it takes no attendance';
+  END IF;
+  IF NEW.clock_in IS NULL AND NEW.clock_out IS NOT NULL THEN
+    RAISE EXCEPTION 'Clock in before clocking out';
+  END IF;
+
+  NEW.attendance_status := CASE
+    WHEN NEW.clock_in IS NULL THEN 'ABSENT'
+    WHEN NEW.clock_in > lower(v_period) + v_grace THEN 'LATE'
+    WHEN NEW.clock_out IS NOT NULL AND NEW.clock_out < upper(v_period) - v_grace THEN 'EARLY_LEAVE'
+    ELSE 'ON_TIME'
+  END;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_attendance_10_derive_status
+  BEFORE INSERT OR UPDATE ON attendance
+  FOR EACH ROW EXECUTE FUNCTION fn_attendance_derive_status();
+
+CREATE FUNCTION fn_attendance_sync_schedule() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE work_schedule SET schedule_status = CASE
+      WHEN NEW.attendance_status = 'ABSENT' THEN 'ABSENT'
+      WHEN NEW.clock_out IS NOT NULL THEN 'COMPLETED'
+      ELSE 'SCHEDULED'
+    END
+  WHERE schedule_id = NEW.schedule_id AND schedule_status <> 'CANCELLED';
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_attendance_80_sync_schedule
+  AFTER INSERT OR UPDATE ON attendance
+  FOR EACH ROW EXECUTE FUNCTION fn_attendance_sync_schedule();

@@ -14,6 +14,7 @@ import {
   CrownOutlined,
   EyeInvisibleOutlined,
   ExclamationCircleOutlined,
+  FieldTimeOutlined,
   FireOutlined,
   GlobalOutlined,
   HourglassOutlined,
@@ -42,6 +43,8 @@ import type { AssignmentStatus } from "@/app/components/portal/assignment/types"
 import type { SkillLevel } from "@/app/components/portal/skill/types";
 import type { EmployeeStatus } from "@/app/components/portal/employee/types";
 import type { ScopeLevel } from "@/app/lib/permissions";
+import type { ScheduleStatus } from "@/app/components/portal/schedule/types";
+import type { AttendanceStatus } from "@/app/components/portal/attendance/types";
 
 // Status palettes: DB stores the code, the UI shows label + color + icon.
 // Color is never the only signal (icon + label too). Key order = workflow order,
@@ -150,6 +153,20 @@ export const EMPLOYEE_STATUS: Record<EmployeeStatus, StatusMeta> = {
 export const SCOPE_LEVEL: Record<ScopeLevel, StatusMeta> = {
   CHAIN:  { label: "Whole chain", color: "purple", icon: <ApartmentOutlined /> },
   BRANCH: { label: "One branch",  color: "blue",   icon: <BankOutlined /> },
+};
+
+export const SCHEDULE_STATUS: Record<ScheduleStatus, StatusMeta> = {
+  SCHEDULED: { label: "Scheduled", color: "blue",    icon: <CalendarOutlined /> },
+  COMPLETED: { label: "Completed", color: "green",   icon: <CheckCircleOutlined /> },
+  ABSENT:    { label: "Absent",    color: "red",     icon: <UserDeleteOutlined /> },
+  CANCELLED: { label: "Cancelled", color: "default", icon: <CloseCircleOutlined /> },
+};
+
+export const ATTENDANCE_STATUS: Record<AttendanceStatus, StatusMeta> = {
+  ON_TIME:     { label: "On time",     color: "green",  icon: <CheckCircleOutlined /> },
+  LATE:        { label: "Late",        color: "gold",   icon: <ClockCircleOutlined /> },
+  EARLY_LEAVE: { label: "Left early",  color: "orange", icon: <FieldTimeOutlined /> },
+  ABSENT:      { label: "Absent",      color: "red",    icon: <UserDeleteOutlined /> },
 };
 
 /** Options for a status filter <Select>, in workflow order. */

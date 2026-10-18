@@ -82,3 +82,24 @@ FROM booking b
 JOIN branch br     ON br.branch_id = b.branch_id
 JOIN customer c    ON c.customer_id = b.customer_id
 JOIN member_tier mt ON mt.tier_id = c.tier_id;
+
+-- Monthly attendance per employee — the module B report (absent / late / early leave).
+-- employee_id comes through work_schedule (attendance has none, 3NF).
+CREATE VIEW v_attendance_monthly AS
+SELECT
+  date_trunc('month', ws.work_date)::date AS month,
+  e.employee_id,
+  e.employee_code,
+  e.first_name || ' ' || e.last_name AS employee_name,
+  e.branch_id,
+  count(*) FILTER (WHERE ws.schedule_status <> 'CANCELLED')            AS scheduled_shifts,
+  count(*) FILTER (WHERE a.attendance_status = 'ON_TIME')              AS on_time,
+  count(*) FILTER (WHERE a.attendance_status = 'LATE')                 AS late,
+  count(*) FILTER (WHERE a.attendance_status = 'EARLY_LEAVE')          AS early_leave,
+  count(*) FILTER (WHERE ws.schedule_status = 'ABSENT')                AS absent,
+  COALESCE(sum(ceil(extract(epoch FROM a.clock_in - lower(fn_shift_period(ws.work_date, ws.shift_id))) / 60))
+             FILTER (WHERE a.attendance_status = 'LATE'), 0)::int    AS late_minutes
+FROM work_schedule ws
+JOIN employee e        ON e.employee_id = ws.employee_id
+LEFT JOIN attendance a ON a.schedule_id = ws.schedule_id
+GROUP BY 1, e.employee_id;
