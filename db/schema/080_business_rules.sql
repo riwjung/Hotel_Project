@@ -815,3 +815,112 @@ END $$;
 CREATE TRIGGER trg_room_20_check_retype
   BEFORE UPDATE OF room_type_id, branch_id ON room
   FOR EACH ROW EXECUTE FUNCTION fn_room_check_retype();
+
+
+-- ---------------------------------------------------------------------
+-- R19 · Service orders (booking_service) and their assignment
+--      a) no orders on a CANCELLED / NO_SHOW booking
+--      b) workflow: REQUESTED → SCHEDULED | IN_PROGRESS | COMPLETED* | CANCELLED
+--                   SCHEDULED → IN_PROGRESS | COMPLETED* | CANCELLED
+--                   IN_PROGRESS → COMPLETED | CANCELLED;  COMPLETED, CANCELLED final
+--         (* skipping IN_PROGRESS is only for services that need no staff)
+--         SCHEDULED needs scheduled_at.
+--      c) a service with need_assignment cannot start or finish without a live
+--         assignment (ASSIGNED / IN_PROGRESS)
+--      d) the live assignment follows its order: IN_PROGRESS (stamps started_at),
+--         COMPLETED (stamps completed_at), CANCELLED
+--      e) a new live assignment needs an open order
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_booking_service_check_order() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_booking_status  booking.booking_status%TYPE;
+  v_code            booking.booking_code%TYPE;
+  v_needs_staff     boolean;
+  v_service         service.service_name%TYPE;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    SELECT booking_status, booking_code INTO v_booking_status, v_code FROM booking WHERE booking_id = NEW.booking_id;
+    IF v_booking_status IN ('CANCELLED', 'NO_SHOW') THEN
+      RAISE EXCEPTION 'Booking % is %, so services cannot be ordered on it',
+        v_code, lower(replace(v_booking_status, '_', '-'));
+    END IF;
+  END IF;
+
+  IF NEW.order_status = 'SCHEDULED' AND NEW.scheduled_at IS NULL THEN
+    RAISE EXCEPTION 'Give a time to schedule the service';
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW.order_status <> OLD.order_status THEN
+    SELECT s.need_assignment, s.service_name INTO v_needs_staff, v_service
+    FROM branch_service bs JOIN service s ON s.service_id = bs.service_id
+    WHERE bs.branch_service_id = NEW.branch_service_id;
+
+    IF NOT (
+         (OLD.order_status = 'REQUESTED'   AND NEW.order_status IN ('SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'))
+      OR (OLD.order_status = 'SCHEDULED'   AND NEW.order_status IN ('IN_PROGRESS', 'COMPLETED', 'CANCELLED'))
+      OR (OLD.order_status = 'IN_PROGRESS' AND NEW.order_status IN ('COMPLETED', 'CANCELLED'))
+    ) THEN
+      RAISE EXCEPTION 'A % order cannot move to %',
+        lower(replace(OLD.order_status, '_', ' ')), lower(replace(NEW.order_status, '_', ' '));
+    END IF;
+
+    IF v_needs_staff AND NEW.order_status IN ('IN_PROGRESS', 'COMPLETED') THEN
+      IF NEW.order_status = 'COMPLETED' AND OLD.order_status <> 'IN_PROGRESS' THEN
+        RAISE EXCEPTION '% must be started before it can be completed', v_service;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM service_assignment
+        WHERE booking_service_id = NEW.booking_service_id AND assignment_status IN ('ASSIGNED', 'IN_PROGRESS')
+      ) THEN
+        RAISE EXCEPTION '% needs someone assigned before it can start', v_service;
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_booking_service_05_check_order
+  BEFORE INSERT OR UPDATE OF order_status, scheduled_at ON booking_service
+  FOR EACH ROW EXECUTE FUNCTION fn_booking_service_check_order();
+
+CREATE FUNCTION fn_booking_service_sync_assignment() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE service_assignment SET
+    assignment_status = CASE NEW.order_status
+                          WHEN 'IN_PROGRESS' THEN 'IN_PROGRESS'
+                          WHEN 'COMPLETED'   THEN 'COMPLETED'
+                          ELSE 'CANCELLED'
+                        END,
+    started_at   = CASE WHEN NEW.order_status IN ('IN_PROGRESS', 'COMPLETED') THEN COALESCE(started_at, now()) ELSE started_at END,
+    completed_at = CASE WHEN NEW.order_status = 'COMPLETED' THEN now() ELSE completed_at END
+  WHERE booking_service_id = NEW.booking_service_id
+    AND assignment_status IN ('ASSIGNED', 'IN_PROGRESS');
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_booking_service_85_sync_assignment
+  AFTER UPDATE OF order_status ON booking_service
+  FOR EACH ROW
+  WHEN (NEW.order_status IN ('IN_PROGRESS', 'COMPLETED', 'CANCELLED') AND NEW.order_status <> OLD.order_status)
+  EXECUTE FUNCTION fn_booking_service_sync_assignment();
+
+CREATE FUNCTION fn_service_assignment_check_order() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_status booking_service.order_status%TYPE;
+BEGIN
+  IF NEW.assignment_status NOT IN ('ASSIGNED', 'IN_PROGRESS') THEN
+    RETURN NEW;                                -- history rows (completed, reassigned) may be recorded any time
+  END IF;
+  SELECT order_status INTO v_status FROM booking_service WHERE booking_service_id = NEW.booking_service_id;
+  IF v_status IN ('COMPLETED', 'CANCELLED') THEN
+    RAISE EXCEPTION 'This order is % — nobody can be assigned to it', lower(v_status);
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_service_assignment_30_check_order
+  BEFORE INSERT OR UPDATE OF booking_service_id ON service_assignment
+  FOR EACH ROW EXECUTE FUNCTION fn_service_assignment_check_order();

@@ -18,7 +18,7 @@ updated: 2026-10-10
 | `060_e_services.sql` | service_category, service, branch_service, booking_service, service_assignment, employee_service_skill |
 | `070_f_operations.sql` | housekeeping_task, maintenance_request |
 | `075_g_transactions.sql` | payment, review |
-| `080_business_rules.sql` | R1–R18 (ด้านล่าง) |
+| `080_business_rules.sql` | R1–R19 (ด้านล่าง) |
 | `085_totals_triggers.sql` | ยอดรวม — [[ADR-003-stored-totals-with-triggers]] |
 | `090_views.sql` | `v_dashboard_branch_today`, `v_booking_overview` |
 
@@ -92,13 +92,14 @@ updated: 2026-10-10
 | R18 | promotion ที่ booking ใช้แล้ว ห้ามเปลี่ยน discount_type / discount_value / minimum_amount (ยอดของ booking คำนวณจาก promotion แถวนั้น) | trigger BEFORE UPDATE OF … บน `promotion` |
 | R11c | ลด `room_type.capacity` ไม่ได้ถ้า stay ที่ยัง active (PENDING/CONFIRMED/CHECKED_IN) จะเกิน — ทั้งแขกที่บันทึกในห้องและ `guest_count` | trigger AFTER UPDATE OF capacity บน `room_type` (ใช้ `fn_assert_booking_capacity` ของ R11b ซ้ำ) |
 | R3d | เปลี่ยน type / สาขาของห้องไม่ได้ระหว่างมี booking ที่ active (rate ของ booking เป็นของ type เดิม) | trigger BEFORE UPDATE OF room_type_id, branch_id บน `room` |
+| R19 | service order (`booking_service`): ห้ามสั่งบน booking ที่ CANCELLED/NO_SHOW; workflow REQUESTED → SCHEDULED → IN_PROGRESS → COMPLETED (ข้ามขั้นได้เฉพาะบริการที่ไม่ต้องมีคนทำ), CANCELLED; SCHEDULED ต้องมีเวลา; บริการที่ `need_assignment` เริ่มไม่ได้ถ้ายังไม่มีคนรับ; assignment ที่ยัง live ตามสถานะ order (IN_PROGRESS/COMPLETED/CANCELLED + เวลา); assign ใหม่ได้เฉพาะ order ที่ยังเปิด | trigger BEFORE บน `booking_service` + AFTER sync ไป `service_assignment` + BEFORE บน `service_assignment` |
 
 เมื่อเปลี่ยนวัน/สาขาของ booking → trigger "touch" แถว booking_room/booking_service → R3/R4/R12 ถูกตรวจซ้ำ + คิด night_count ใหม่อัตโนมัติ
 
 ส่วนลด: `discount_amount` = promotion + member rate % ของยอดที่เหลือ (`fn_booking_discounts`), อัตรา member เป็น snapshot
 ใน `booking.member_discount_rate` ตอนจอง — tier ที่เปลี่ยนทีหลังไม่ทำให้ยอดของ booking เก่าเปลี่ยน ([[ADR-006-member-tier-discount-and-derived-tier]])
 
-ทดสอบทั้งหมด: `npm run db:test` (49 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK;
+ทดสอบทั้งหมด: `npm run db:test` (51 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK;
 เทสต์ของ R11b ใช้ `SET CONSTRAINTS … IMMEDIATE` บังคับให้ deferred trigger ทำงานก่อน ROLLBACK)
 
 ## ยังไม่ได้บังคับ (backlog)

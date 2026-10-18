@@ -85,11 +85,11 @@ export const NAV: NavGroup[] = [
     label: "Services",
     note: "03-modules/E-services.md",
     items: [
-      { path: "/services", label: "Service Catalog", icon: "catalog", permission: "SERVICE_VIEW", status: "planned", tables: ["service_category", "service"] },
-      { path: "/branch-services", label: "Branch Services", icon: "branchService", permission: "SERVICE_VIEW", status: "planned", tables: ["branch_service"] },
-      { path: "/service-orders", label: "Service Orders", icon: "order", permission: "SERVICE_VIEW", status: "planned", tables: ["booking_service"] },
-      { path: "/assignments", label: "Assignments", icon: "assignment", permission: "ASSIGNMENT_MANAGE", status: "planned", tables: ["service_assignment"] },
-      { path: "/skills", label: "Staff Skills", icon: "skill", permission: "ASSIGNMENT_MANAGE", status: "planned", tables: ["employee_service_skill"] },
+      { path: "/services", label: "Service Catalog", icon: "catalog", permission: "SERVICE_VIEW", status: "ready", tables: ["service_category", "service"] },
+      { path: "/branch-services", label: "Branch Services", icon: "branchService", permission: "SERVICE_VIEW", status: "ready", tables: ["branch_service"] },
+      { path: "/service-orders", label: "Service Orders", icon: "order", permission: "SERVICE_VIEW", status: "ready", tables: ["booking_service"] },
+      { path: "/assignments", label: "Assignments", icon: "assignment", permission: "ASSIGNMENT_MANAGE", status: "ready", tables: ["service_assignment"] },
+      { path: "/skills", label: "Staff Skills", icon: "skill", permission: "ASSIGNMENT_MANAGE", status: "ready", tables: ["employee_service_skill"] },
     ],
   },
   {

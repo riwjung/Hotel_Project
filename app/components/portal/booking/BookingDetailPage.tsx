@@ -14,11 +14,11 @@ import {
   Typography,
   type TableColumnsType,
 } from "antd";
-import { ArrowLeftOutlined, CheckOutlined, CreditCardOutlined, LoginOutlined, LogoutOutlined, RollbackOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CheckOutlined, CreditCardOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, RollbackOutlined } from "@ant-design/icons";
 import { useSession } from "@/app/lib/auth-client";
 import { codeLabel, formatDate, formatDateTime, formatMoney } from "@/app/lib/format";
-import { BOOKING_STATUS, PAYMENT_STATUS } from "@/app/lib/status";
-import { sortDate, sortNumber, sortText } from "@/app/lib/table-sort";
+import { BOOKING_STATUS, ORDER_STATUS, PAYMENT_STATUS } from "@/app/lib/status";
+import { sortByOrder, sortDate, sortNumber, sortText } from "@/app/lib/table-sort";
 import { useApiData } from "@/app/lib/use-api-data";
 import LoadError from "../LoadError";
 import StatusTag from "../StatusTag";
@@ -28,6 +28,9 @@ import CheckOutModal from "./CheckOutModal";
 import { createRefund } from "../payment/payment.api";
 import RefundModal from "../payment/RefundModal";
 import type { RefundInput } from "../payment/types";
+import OrderModal from "../service-order/OrderModal";
+import { createOrder } from "../service-order/service-order.api";
+import { ORDER_STATUSES, type OrderStatus, type ServiceOrderInput } from "../service-order/types";
 import PaymentModal from "./PaymentModal";
 import type {
   BookingGuest,
@@ -50,6 +53,7 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
+  const [orderOpen, setOrderOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const booking = bookingState.data;
 
@@ -110,7 +114,7 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
     { title: "Unit price", dataIndex: "unitPrice", align: "right", sorter: sortNumber<BookingService>((row) => row.unitPrice), render: formatMoney },
     { title: "Subtotal", dataIndex: "subtotal", align: "right", sorter: sortNumber<BookingService>((row) => row.subtotal), render: formatMoney },
     { title: "Scheduled", dataIndex: "scheduledAt", sorter: sortDate<BookingService>((row) => row.scheduledAt), render: formatDateTime },
-    { title: "Status", dataIndex: "orderStatus", sorter: sortText<BookingService>((row) => row.orderStatus), render: codeLabel },
+    { title: "Status", dataIndex: "orderStatus", sorter: sortByOrder<BookingService>((row) => row.orderStatus, ORDER_STATUSES), render: (value: OrderStatus) => <StatusTag value={value} palette={ORDER_STATUS} /> },
   ];
   const paymentColumns: TableColumnsType<BookingPayment> = [
     { title: "Date", dataIndex: "paymentDate", sorter: sortDate<BookingPayment>((row) => row.paymentDate), render: formatDateTime },
@@ -200,7 +204,18 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
       <Card variant="outlined" title="Guests" styles={{ body: { padding: booking.guests.length ? 0 : 24 } }}>
         {booking.guests.length ? <Table rowKey="guestId" columns={guestColumns} dataSource={booking.guests} {...tableProps} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Guest details are recorded at check-in." />}
       </Card>
-      <Card variant="outlined" title="Services" styles={{ body: { padding: booking.services.length ? 0 : 24 } }}>
+      <Card
+        variant="outlined"
+        title="Services"
+        styles={{ body: { padding: booking.services.length ? 0 : 24 } }}
+        extra={
+          can("SERVICE_ORDER_MANAGE") && (booking.bookingStatus === "CONFIRMED" || booking.bookingStatus === "CHECKED_IN") ? (
+            <Button size="small" icon={<PlusOutlined />} onClick={() => setOrderOpen(true)}>
+              Order service
+            </Button>
+          ) : null
+        }
+      >
         {booking.services.length ? <Table rowKey="bookingServiceId" columns={serviceColumns} dataSource={booking.services} {...tableProps} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No services ordered for this booking." />}
       </Card>
       <Card
@@ -254,6 +269,13 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
         saving={saving}
         onCancel={() => setCheckOutOpen(false)}
         onSubmit={(input: CheckOutInput) => void run(() => checkOutBooking(bookingId, input), "Guest checked out and cleaning tasks created", () => setCheckOutOpen(false))}
+      />
+      <OrderModal
+        open={orderOpen}
+        booking={{ bookingId, bookingCode: booking.bookingCode, branchId: booking.branchId }}
+        saving={saving}
+        onCancel={() => setOrderOpen(false)}
+        onSubmit={(input: ServiceOrderInput) => void run(() => createOrder(input), "Service ordered", () => setOrderOpen(false))}
       />
       <RefundModal
         open={refundOpen}

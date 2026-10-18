@@ -771,3 +771,63 @@ BEGIN
   UPDATE room SET room_type_id = 2 WHERE room_id = 5;
   RAISE NOTICE 'PASS: R3d retyping a room without bookings accepted';
 END $$;
+
+-- R19 · the assignment follows its order: start → IN_PROGRESS (started_at), complete → COMPLETED (completed_at)
+-- order 4 = BK-0003 airport transfer, SCHEDULED, live assignment to Ekkachai
+DO $$
+DECLARE
+  a1 service_assignment%ROWTYPE;
+  a2 service_assignment%ROWTYPE;
+BEGIN
+  UPDATE booking_service SET order_status = 'IN_PROGRESS' WHERE booking_service_id = 4;
+  SELECT * INTO a1 FROM service_assignment WHERE booking_service_id = 4 AND assignment_status <> 'REASSIGNED';
+  UPDATE booking_service SET order_status = 'COMPLETED' WHERE booking_service_id = 4;
+  SELECT * INTO a2 FROM service_assignment WHERE booking_service_id = 4 AND assignment_status <> 'REASSIGNED';
+  IF a1.assignment_status = 'IN_PROGRESS' AND a1.started_at IS NOT NULL
+     AND a2.assignment_status = 'COMPLETED' AND a2.completed_at IS NOT NULL THEN
+    RAISE NOTICE 'PASS: R19 assignment followed the order to IN_PROGRESS and COMPLETED';
+  ELSE
+    RAISE EXCEPTION 'FAIL: assignment states % / %', a1.assignment_status, a2.assignment_status;
+  END IF;
+END $$;
+
+-- R19 · order workflow guards
+DO $$
+DECLARE
+  v_massage   integer;
+  v_breakfast integer;
+  v_rejected  integer := 0;
+BEGIN
+  -- BK-0003 (in house, BKK) orders a massage (needs a therapist) and a breakfast (does not)
+  INSERT INTO booking_service (booking_id, branch_service_id) VALUES (3, 3) RETURNING booking_service_id INTO v_massage;
+  INSERT INTO booking_service (booking_id, branch_service_id) VALUES (3, 1) RETURNING booking_service_id INTO v_breakfast;
+
+  BEGIN   -- a massage cannot start before someone is assigned
+    UPDATE booking_service SET order_status = 'IN_PROGRESS' WHERE booking_service_id = v_massage;
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- SCHEDULED needs a time
+    UPDATE booking_service SET order_status = 'SCHEDULED' WHERE booking_service_id = v_massage;
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  -- a breakfast can be served straight away, and then it is final
+  UPDATE booking_service SET order_status = 'COMPLETED' WHERE booking_service_id = v_breakfast;
+  BEGIN
+    UPDATE booking_service SET order_status = 'IN_PROGRESS' WHERE booking_service_id = v_breakfast;
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- no orders on a cancelled booking (BK-0006)
+    INSERT INTO booking_service (booking_id, branch_service_id) VALUES (6, 2);
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- no new live assignment on a closed order (order 3 is COMPLETED; Darin is skilled and in BKK)
+    INSERT INTO service_assignment (booking_service_id, employee_id) VALUES (3, 4);
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+
+  IF v_rejected = 5 THEN
+    RAISE NOTICE 'PASS: R19 start without assignee, schedule without time, reopen, order on cancelled booking, assign closed order — all rejected';
+  ELSE
+    RAISE EXCEPTION 'FAIL: only % of 5 order violations rejected', v_rejected;
+  END IF;
+END $$;

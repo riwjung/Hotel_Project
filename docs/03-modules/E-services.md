@@ -1,7 +1,7 @@
 ---
 tags: [module]
 module: E
-status: planned
+status: done
 ---
 
 # E · บริการ
@@ -24,16 +24,16 @@ status: planned
 ## หน้าจอ
 | path | สถานะ | permission |
 |---|---|---|
-| `/services` | ⏳ | `SERVICE_VIEW` / `SERVICE_MANAGE` |
-| `/branch-services` | ⏳ | 〃 |
-| `/service-orders` | ⏳ | `SERVICE_VIEW` / `SERVICE_ORDER_MANAGE` |
-| `/assignments` | ⏳ | `ASSIGNMENT_MANAGE` |
-| `/skills` | ⏳ | `ASSIGNMENT_MANAGE` |
+| `/services` | ✅ catalog: services + categories CRUD (แก้ได้เฉพาะ account ระดับเครือ) | `SERVICE_VIEW` / `SERVICE_MANAGE` |
+| `/branch-services` | ✅ ราคาสาขา, เปิด/ปิดขาย (switch), เวลาเปิด, เพิ่ม/ลบ | 〃 |
+| `/service-orders` | ✅ list/filter, สั่ง (และจากหน้า booking), schedule, start, complete, cancel, assign/reassign | `SERVICE_VIEW` / `SERVICE_ORDER_MANAGE` (+ `ASSIGNMENT_MANAGE` สำหรับ assign) |
+| `/assignments` | ✅ คิวที่รอคน, คะแนนคุณภาพต่อพนักงาน, ประวัติ (append-only) + ให้คะแนน | `ASSIGNMENT_MANAGE` |
+| `/skills` | ✅ matrix พนักงาน × บริการที่ต้องมีคนทำ | `ASSIGNMENT_MANAGE` |
 
 ## Backlog
-- [ ] Catalog CRUD (category + service)
-- [ ] Branch services: เปิด/ปิด, ราคาสาขา, เวลาเปิด
-- [ ] Service orders board (REQUESTED → SCHEDULED → IN_PROGRESS → COMPLETED)
-- [ ] Assign / reassign — dropdown แสดงเฉพาะพนักงานที่มี skill (ลด error R5)
-- [ ] Skill matrix พนักงาน × service
-- [ ] รายงานคะแนนคุณภาพ (`quality_score`) ต่อพนักงาน
+- [x] Catalog CRUD (category + service) — 2026-10-18
+- [x] Branch services: เปิด/ปิด, ราคาสาขา, เวลาเปิด
+- [x] Service orders (REQUESTED → SCHEDULED → IN_PROGRESS → COMPLETED) — workflow ใน DB (R19), ยอดบริการเข้า booking ผ่าน totals trigger
+- [x] Assign / reassign — dropdown แสดงเฉพาะพนักงานที่มี skill ในสาขาเดียวกัน เรียงตามระดับ + งานค้าง; reassign = แถวเดิม REASSIGNED + insert ใหม่
+- [x] Skill matrix พนักงาน × service
+- [x] รายงานคะแนนคุณภาพ (`quality_score`) ต่อพนักงาน (หน้า assignments)

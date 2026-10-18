@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
+  CalendarOutlined,
   CheckCircleOutlined,
   CheckOutlined,
   ClearOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  CrownOutlined,
   EyeInvisibleOutlined,
   ExclamationCircleOutlined,
   FireOutlined,
@@ -16,7 +18,11 @@ import {
   LogoutOutlined,
   MinusCircleOutlined,
   MinusOutlined,
+  PlayCircleOutlined,
+  RiseOutlined,
+  StarOutlined,
   StopOutlined,
+  SwapOutlined,
   ToolOutlined,
   UserDeleteOutlined,
   UserOutlined,
@@ -28,6 +34,9 @@ import type { HousekeepingStatus } from "@/app/components/portal/housekeeping/ty
 import type { MaintenancePriority, MaintenanceStatus } from "@/app/components/portal/maintenance/types";
 import type { PromotionStatus } from "@/app/components/portal/promotion/types";
 import type { ReviewStatus } from "@/app/components/portal/review/types";
+import type { OrderStatus } from "@/app/components/portal/service-order/types";
+import type { AssignmentStatus } from "@/app/components/portal/assignment/types";
+import type { SkillLevel } from "@/app/components/portal/skill/types";
 
 // Status palettes: DB stores the code, the UI shows label + color + icon.
 // Color is never the only signal (icon + label too). Key order = workflow order,
@@ -101,6 +110,29 @@ export const REVIEW_STATUS: Record<ReviewStatus, StatusMeta> = {
   PENDING:   { label: "Pending",   color: "gold",    icon: <ClockCircleOutlined /> },
   PUBLISHED: { label: "Published", color: "green",   icon: <GlobalOutlined /> },
   HIDDEN:    { label: "Hidden",    color: "default", icon: <EyeInvisibleOutlined /> },
+};
+
+export const ORDER_STATUS: Record<OrderStatus, StatusMeta> = {
+  REQUESTED:   { label: "Requested",   color: "default", icon: <ClockCircleOutlined /> },
+  SCHEDULED:   { label: "Scheduled",   color: "blue",    icon: <CalendarOutlined /> },
+  IN_PROGRESS: { label: "In progress", color: "gold",    icon: <PlayCircleOutlined /> },
+  COMPLETED:   { label: "Completed",   color: "green",   icon: <CheckCircleOutlined /> },
+  CANCELLED:   { label: "Cancelled",   color: "red",     icon: <CloseCircleOutlined /> },
+};
+
+export const ASSIGNMENT_STATUS: Record<AssignmentStatus, StatusMeta> = {
+  ASSIGNED:    { label: "Assigned",    color: "blue",    icon: <UserOutlined /> },
+  IN_PROGRESS: { label: "In progress", color: "gold",    icon: <PlayCircleOutlined /> },
+  COMPLETED:   { label: "Completed",   color: "green",   icon: <CheckCircleOutlined /> },
+  REASSIGNED:  { label: "Reassigned",  color: "purple",  icon: <SwapOutlined /> },
+  CANCELLED:   { label: "Cancelled",   color: "default", icon: <CloseCircleOutlined /> },
+};
+
+// Skill level is a coded value rendered like a status (key order = seniority).
+export const SKILL_LEVEL: Record<SkillLevel, StatusMeta> = {
+  JUNIOR: { label: "Junior", color: "default", icon: <StarOutlined /> },
+  SENIOR: { label: "Senior", color: "blue",    icon: <RiseOutlined /> },
+  EXPERT: { label: "Expert", color: "gold",    icon: <CrownOutlined /> },
 };
 
 /** Options for a status filter <Select>, in workflow order. */
