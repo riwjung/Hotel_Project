@@ -2,11 +2,11 @@
    Ant Design owns component styling via ConfigProvider (app/providers.tsx);
    these tokens are for the few things antd does not cover. */
 :root {
-  --bg: #f4f6fb;            /* app background — soft blue-grey, not white */
+  --bg: #f6f4ef;            /* app background — warm sand, not white (= antd colorBgLayout) */
   --surface: #ffffff;       /* cards / panels */
-  --text: #0e1726;
-  --muted: #506690;
-  --border: #e2e8f1;
+  --text: #2b261e;
+  --muted: #7d7362;
+  --border: #e3dccd;
   --accent: #8a6c37;        /* = antd colorPrimary (Sand & Sky gold) */
   --accent-strong: #6f5629;
 
