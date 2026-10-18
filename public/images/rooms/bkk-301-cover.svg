@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Chao Phraya Suite living room</title>
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b9dcf2"/><stop offset="1" stop-color="#f7d7ad"/></linearGradient></defs>
+  <rect width="1200" height="750" fill="#eee6da"/><rect x="610" y="70" width="510" height="360" rx="8" fill="url(#sky)"/>
+  <path d="M610 340q140-45 260 0t250 0v90H610Z" fill="#6e9db3"/><path d="M630 300h65v110h-65zm95-50h82v160h-82zm115 85h55v75h-55zm90-120h100v195H930z" fill="#78909c" opacity=".7"/>
+  <rect x="100" y="430" width="650" height="190" rx="32" fill="#f8f4ed"/><rect x="155" y="390" width="250" height="110" rx="24" fill="#d9b98c"/><rect x="445" y="390" width="250" height="110" rx="24" fill="#d9b98c"/>
+  <ellipse cx="850" cy="585" rx="190" ry="68" fill="#7a5139"/><ellipse cx="850" cy="565" rx="175" ry="55" fill="#b9845e"/><circle cx="850" cy="540" r="36" fill="#f2c879"/>
+  <text x="74" y="100" font-family="Georgia,serif" font-size="54" fill="#26384b">Chao Phraya Suite</text>
+</svg>

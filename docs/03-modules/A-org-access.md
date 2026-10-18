@@ -14,7 +14,7 @@ owner = แถวใน `employee` ที่ role `OWNER`, `scope_level='CHAIN'`
 ## หน้าจอ
 | path | สถานะ | permission |
 |---|---|---|
-| `/branches` | ✅ CRUD เต็ม (reference pattern) | `BRANCH_VIEW` / `BRANCH_MANAGE` |
+| `/branches` | ✅ CRUD + detail (ข้อมูลสาขา, ห้อง, พนักงาน, booking ที่ active) | `BRANCH_VIEW` / `BRANCH_MANAGE` |
 | `/employees` | ✅ list/filter, สร้าง/แก้ (สถานะแทนการลบ), reset password | `EMPLOYEE_VIEW` / `EMPLOYEE_MANAGE` |
 | `/roles` | ✅ roles CRUD + matrix role × permission (checkbox) | `ROLE_MANAGE` |
 
@@ -23,6 +23,7 @@ owner = แถวใน `employee` ที่ role `OWNER`, `scope_level='CHAIN'`
 |---|---|---|
 | GET/POST | `/api/branches` | ✅ |
 | GET/PATCH/DELETE | `/api/branches/:id` | ✅ |
+| GET | `/api/branches/options` | ✅ รายการสำหรับ header switcher; ไม่ถูก working-branch scope บัง |
 | POST | `/api/auth/login` · `/api/auth/logout` · GET `/api/auth/me` | ✅ |
 
 ## Backlog
@@ -31,5 +32,5 @@ owner = แถวใน `employee` ที่ role `OWNER`, `scope_level='CHAIN'`
   - ไม่มีปุ่มลบ: booking/งาน/log อ้างถึงพนักงาน → ใช้สถานะ RESIGNED (login ไม่ได้)
 - [x] แสดง error ของ R2 ตอนเลือก role CHAIN แล้วใส่สาขา (ฟอร์มปิดช่องสาขาเมื่อเลือก role ระดับเครือ)
 - [x] Roles & Permissions: matrix role × permission (checkbox) → `role_permission`; R20 กันถอน ROLE_MANAGE คนสุดท้าย; มีผลเมื่อ login ใหม่ (ADR-004)
-- [ ] Branch detail: Descriptions + จำนวนห้อง/พนักงาน/booking ที่ active
-- [ ] Header branch switcher สำหรับ OWNER (เลือกดูทีละสาขาทั้งแอป)
+- [x] Branch detail: Descriptions + จำนวนห้อง/พนักงาน/booking ที่ active — 2026-10-18
+- [x] Header branch switcher สำหรับ OWNER — เลือก working branch แล้ว API ทุกโมดูลรับ effective branch scope ฝั่ง server; manager/staff ปลอม header ข้ามสาขาไม่ได้ — 2026-10-18

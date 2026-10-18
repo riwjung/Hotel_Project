@@ -15,6 +15,7 @@ export type Branch = {
   branchStatus: BranchStatus;
   roomCount: number;
   employeeCount: number;
+  activeBookingCount: number;
 };
 
 /** Body of POST /api/branches and PATCH /api/branches/:id */

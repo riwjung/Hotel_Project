@@ -26,6 +26,7 @@ palette อยู่ใน `app/lib/status.tsx › BOOKING_STATUS` แล้ว
 | `/bookings` | ✅ list/filter + lifecycle actions | `BOOKING_VIEW` / `BOOKING_MANAGE` |
 | `/bookings/[id]` | ✅ detail/check-in/payment/check-out | 〃 |
 | `/bookings/new` | ✅ create booking | `BOOKING_MANAGE` |
+| `/availability` | ✅ grid ห้อง × คืน, 7/14/30 คืน, ลิงก์ booking และ prefill ปุ่ม `+` | `BOOKING_VIEW` / `BOOKING_MANAGE` |
 | `/customers` | ✅ list/search/tier filter + create/edit/delete | `CUSTOMER_VIEW` / `CUSTOMER_MANAGE` |
 
 **Customer = ข้อมูลระดับเครือ** (`customer` ไม่มี `branch_id`) จึงไม่ใช้ `branchScope` — แขกคนเดียวกันใช้ได้ทุกสาขา
@@ -52,4 +53,5 @@ await withTx(session, (db) =>
 - [x] Check-out: `actual_check_out`, room_status → CLEANING, สร้าง housekeeping_task อัตโนมัติ ([[F-operations]])
 - [x] Cancel / No-show ผ่าน `modal.confirm` danger
 - [x] Customers CRUD + tier/points (2026-10-17)
+- [x] Availability grid: SQL statement เดียว, ใช้ overlap condition เดียวกับ R3, branch scope ฝั่ง server, ช่องว่าง prefill หน้า create booking — 2026-10-18
 - [ ] Customer self-service site + customer login (แยก route group `(site)`) — ยังไม่อยู่ในขอบเขต skeleton

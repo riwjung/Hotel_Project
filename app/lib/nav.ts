@@ -10,7 +10,7 @@ export type ModuleKey = "dashboard" | "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
 export type NavIconKey =
   | "dashboard" | "branch" | "team" | "safety" | "clock" | "calendar" | "check"
-  | "room" | "roomType" | "amenity" | "rate" | "booking" | "customer"
+  | "room" | "roomType" | "amenity" | "rate" | "booking" | "availability" | "customer"
   | "catalog" | "branchService" | "order" | "assignment" | "skill"
   | "housekeeping" | "maintenance" | "payment" | "promotion" | "tier" | "review";
 
@@ -77,6 +77,7 @@ export const NAV: NavGroup[] = [
     note: "03-modules/D-booking.md",
     items: [
       { path: "/bookings", label: "Bookings", icon: "booking", permission: "BOOKING_VIEW", status: "ready", tables: ["booking", "booking_room", "guest", "booking_status_log"] },
+      { path: "/availability", label: "Availability", icon: "availability", permission: "BOOKING_VIEW", status: "ready", tables: ["room", "booking_room", "booking"] },
       { path: "/customers", label: "Customers", icon: "customer", permission: "CUSTOMER_VIEW", status: "ready", tables: ["customer", "member_tier"] },
     ],
   },

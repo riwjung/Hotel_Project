@@ -1,3 +1,4 @@
 import { route } from "@/app/lib/server/http";
 
-export const GET = route({}, async ({ session }) => session);
+// Return the signed identity, not the temporary working-branch scope.
+export const GET = route({ ignoreBranchSelection: true }, async ({ session }) => session);

@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import type { SessionUser } from "@/app/lib/permissions";
+import type { ScopeLevel, SessionUser } from "@/app/lib/permissions";
 import {
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
@@ -8,7 +8,9 @@ import {
   verifySessionToken,
 } from "./session-token";
 
-export type Session = SessionUser;
+export type Session = SessionUser & { signedScopeLevel?: ScopeLevel };
+
+export const SELECTED_BRANCH_HEADER = "x-hotel-branch-id";
 
 export async function getSession(): Promise<Session | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -36,4 +38,17 @@ export async function endSession(): Promise<void> {
  */
 export function branchScope(session: Session): number | null {
   return session.scopeLevel === "CHAIN" ? null : session.branchId;
+}
+
+/**
+ * A chain-level employee may temporarily work inside one branch from the
+ * header switcher. The original signed session is never changed; only this
+ * request receives an effective branch scope. Branch users cannot override
+ * their assigned branch with the header.
+ */
+export function withSelectedBranch(session: Session, headerValue: string | null): Session {
+  if (session.scopeLevel !== "CHAIN" || !headerValue) return session;
+  const branchId = Number(headerValue);
+  if (!Number.isInteger(branchId) || branchId <= 0) return session;
+  return { ...session, signedScopeLevel: "CHAIN", scopeLevel: "BRANCH", branchId };
 }

@@ -2,7 +2,7 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import type { PermissionCode } from "@/app/lib/permissions";
-import { branchScope, getSession, type Session } from "./auth";
+import { getSession, SELECTED_BRANCH_HEADER, withSelectedBranch, type Session } from "./auth";
 
 // Error body shape for every API response: { error: { code, message } }.
 // `message` is written for end users — the UI shows it as-is.
@@ -147,7 +147,7 @@ export async function parseBody<S extends z.ZodType>(req: Request, schema: S): P
  * (branchScope), not a role check.
  */
 export function requireChainScope(session: Session, what: string) {
-  if (branchScope(session) !== null) {
+  if ((session.signedScopeLevel ?? session.scopeLevel) !== "CHAIN") {
     throw new HttpError(403, "CHAIN_ONLY", `${what} are shared by every branch, so only chain-level staff can change them`);
   }
 }
@@ -183,15 +183,18 @@ type HandlerArgs<S extends z.ZodType | undefined> = {
  * Returning a Response passes it through; anything else is sent as JSON.
  */
 export function route<S extends z.ZodType | undefined = undefined>(
-  options: { permission?: PermissionCode; body?: S },
+  options: { permission?: PermissionCode; body?: S; ignoreBranchSelection?: boolean },
   handler: (args: HandlerArgs<S>) => Promise<unknown>,
 ) {
   return async (req: NextRequest, ctx: RouteContext): Promise<Response> => {
     try {
-      const session = await getSession();
-      if (!session) {
+      const signedSession = await getSession();
+      if (!signedSession) {
         return fail(401, "UNAUTHENTICATED", "Your session has expired. Please sign in again.");
       }
+      const session = options.ignoreBranchSelection
+        ? signedSession
+        : withSelectedBranch(signedSession, req.headers.get(SELECTED_BRANCH_HEADER));
       if (options.permission && !session.permissions.includes(options.permission)) {
         return fail(403, "FORBIDDEN", "You do not have permission to do this");
       }

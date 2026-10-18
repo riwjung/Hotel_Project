@@ -16,8 +16,8 @@ import type { BookingFilter } from "./types";
 
 export default function BookingListPage() {
   const router = useRouter();
-  const { user, can } = useSession();
-  const chainWide = user?.scopeLevel === "CHAIN" && can("BRANCH_VIEW");
+  const { user, can, selectedBranchId } = useSession();
+  const chainWide = user?.scopeLevel === "CHAIN" && !selectedBranchId && can("BRANCH_VIEW");
   const [filter, setFilter] = useState<BookingFilter>({});
   const bookings = useApiData((signal) => fetchBookings(filter, signal), JSON.stringify(filter));
   const branches = useApiData(
@@ -91,7 +91,7 @@ export default function BookingListPage() {
             style={{ padding: 32 }}
           />
         ) : (
-          <BookingTable bookings={data} loading={bookings.loading} showBranch={user?.scopeLevel === "CHAIN"} />
+          <BookingTable bookings={data} loading={bookings.loading} showBranch={user?.scopeLevel === "CHAIN" && !selectedBranchId} />
         )}
       </Card>
     </>

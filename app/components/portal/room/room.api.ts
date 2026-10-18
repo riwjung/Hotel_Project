@@ -1,8 +1,12 @@
 import { api } from "@/app/lib/api-client";
-import type { ManualRoomStatus, Room, RoomFilter, RoomInput, RoomStatus } from "./types";
+import type { ManualRoomStatus, Room, RoomDetail, RoomFilter, RoomInput, RoomStatus } from "./types";
 
 export function fetchRooms(filter: RoomFilter, signal?: AbortSignal) {
   return api<Room[]>("/api/rooms", { params: filter, signal });
+}
+
+export function fetchRoom(id: number, signal?: AbortSignal) {
+  return api<RoomDetail>(`/api/rooms/${id}`, { signal });
 }
 
 export function createRoom(input: RoomInput) {

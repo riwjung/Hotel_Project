@@ -1,6 +1,6 @@
 ---
 tags: [moc]
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # Hotel AdvDB — Home
@@ -11,6 +11,7 @@ Next.js 16 (Route Handlers) + Ant Design 6 + PostgreSQL 17 (raw SQL ผ่าน
 > เริ่มที่นี่ทุกครั้ง — ทั้งคนและ AI agent (CLAUDE.md ที่ root ชี้มาที่ไฟล์นี้)
 
 ## สถานะล่าสุด
+- [[2026-10-18-session-log|Session log 2026-10-18]] — ครบทุกโมดูล + availability grid, room/branch detail, room gallery และ OWNER working-branch switcher; กฎ R2b, R3d, R11c, R14–R22
 - [[2026-10-17-session-log|Session log 2026-10-17]] — R11 capacity / R12 min nights, QA `/bookings` + `/housekeeping` (แก้ bug check-in), Customers CRUD, Create booking, R13 tier ตามแต้ม + ส่วนลด tier ซ้อน promotion; มีประเมินความคืบหน้า %
 - [[2026-10-11-session-log|Session log 2026-10-11]] — booking lifecycle + housekeeping พร้อม API integration test
 - [[2026-10-11-handoff-codex|Handoff → Codex 2026-10-11]] — สรุปทั้งหมดสำหรับ agent ที่ทำต่อ (เริ่มที่ Task 1: Bookings list)
@@ -32,15 +33,15 @@ Next.js 16 (Route Handlers) + Ant Design 6 + PostgreSQL 17 (raw SQL ผ่าน
 ## Modules
 | | โมดูล | สถานะหน้าจอ |
 |---|---|---|
-| A | [[A-org-access]] | Branches ✅ · Employees, Roles ⏳ |
-| B | [[B-workforce]] | ⏳ |
-| C | [[C-rooms]] | Rooms (read-only) ✅ · ที่เหลือ ⏳ |
-| D | [[D-booking]] | Booking list/detail/lifecycle ✅ · Create booking ✅ · Customers ✅ |
-| E | [[E-services]] | ⏳ |
-| F | [[F-operations]] | Housekeeping ✅ · Maintenance ⏳ |
-| G | [[G-finance-cx]] | ⏳ |
+| A | [[A-org-access]] | Branches + detail ✅ · Employees ✅ · Roles & Permissions ✅ · Header branch switcher ✅ |
+| B | [[B-workforce]] | Shifts ✅ · Work schedules ✅ · Attendance ✅ |
+| C | [[C-rooms]] | Rooms CRUD/detail/gallery ✅ · Room types ✅ · Amenities ✅ · Room rates ✅ |
+| D | [[D-booking]] | Booking list/detail/lifecycle ✅ · Create booking ✅ · Availability ✅ · Customers ✅ |
+| E | [[E-services]] | Catalog ✅ · Branch services ✅ · Service orders ✅ · Assignments ✅ · Skills ✅ |
+| F | [[F-operations]] | Housekeeping ✅ · Maintenance ✅ |
+| G | [[G-finance-cx]] | Payments ✅ · Promotions ✅ · Member tiers ✅ · Reviews ✅ |
 
-DB ของทุกโมดูลพร้อมแล้ว (DDL + rules + seed + tests) — ที่ยังขาดคือ API + หน้าจอ
+ครบ 24/24 เมนู (2026-10-18) · กฎใน DB R1–R22 · 44 triggers · 3 views · 57 DB tests — ดู [[2026-10-18-session-log]]
 
 ## Standards
 - [[ui-standard]] — หน้าตา (antd-only, tokens, กติกา component)
@@ -50,3 +51,4 @@ DB ของทุกโมดูลพร้อมแล้ว (DDL + rules + s
 
 ## Dev
 - [[setup]] — Docker → db:reset → dev, user ทดสอบ
+- [[presentation-demo]] — ขั้นตอนซ้อมและพรีเซนต์เว็บทีละหน้า

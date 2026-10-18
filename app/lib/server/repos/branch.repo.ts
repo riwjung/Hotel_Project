@@ -31,7 +31,10 @@ const SELECT_BRANCH = `
     b.branch_status                     AS "branchStatus",
     (SELECT count(*) FROM room r WHERE r.branch_id = b.branch_id) AS "roomCount",
     (SELECT count(*) FROM employee e
-      WHERE e.branch_id = b.branch_id AND e.employee_status <> 'RESIGNED') AS "employeeCount"
+      WHERE e.branch_id = b.branch_id AND e.employee_status <> 'RESIGNED') AS "employeeCount",
+    (SELECT count(*) FROM booking bk
+      WHERE bk.branch_id = b.branch_id
+        AND bk.booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')) AS "activeBookingCount"
   FROM branch b`;
 
 /** @param scope null = all branches (chain), otherwise only that branch */

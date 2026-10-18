@@ -59,9 +59,9 @@ INSERT INTO room (room_id, branch_id, room_type_id, room_number, room_name, floo
   (15, 3, 4, '201', 'Andaman Suite',     2, 'Sea view',    'AVAILABLE');
 
 INSERT INTO room_image (room_id, image_url, image_caption, is_cover, sort_order) VALUES
-  ( 7, '/images/rooms/bkk-301-cover.jpg',    'Living room with river view', true,  1),
-  ( 7, '/images/rooms/bkk-301-bath.jpg',     'Bathroom with bathtub',       false, 2),
-  (15, '/images/rooms/hkt-201-cover.jpg',    'Sea view balcony',            true,  1);
+  ( 7, '/images/rooms/bkk-301-cover.svg',    'Living room with river view', true,  1),
+  ( 7, '/images/rooms/bkk-301-bath.svg',     'Bathroom with bathtub',       false, 2),
+  (15, '/images/rooms/hkt-201-cover.svg',    'Sea view balcony',            true,  1);
 
 INSERT INTO room_rate (rate_id, branch_id, room_type_id, rate_name, start_date, end_date, price_per_night, min_nights)
 OVERRIDING SYSTEM VALUE VALUES

@@ -28,6 +28,28 @@ export type Room = {
   bedType: string;
 };
 
+export type RoomImage = {
+  imageId: number;
+  imageUrl: string;
+  imageCaption: string | null;
+  isCover: boolean;
+};
+
+export type RoomAmenity = {
+  amenityId: number;
+  amenityName: string;
+  amenityGroup: string;
+  note: string | null;
+};
+
+export type RoomDetail = Room & {
+  images: RoomImage[];
+  amenities: RoomAmenity[];
+  currentRateName: string | null;
+  currentPrice: number | null;
+  minNights: number | null;
+};
+
 export type RoomFilter = {
   branchId?: number;
   status?: RoomStatus;

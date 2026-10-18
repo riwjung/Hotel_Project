@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Andaman Suite sea view balcony</title>
+  <defs><linearGradient id="sea" x2="0" y2="1"><stop stop-color="#a9dcf1"/><stop offset=".48" stop-color="#daf1f3"/><stop offset=".5" stop-color="#288eae"/><stop offset="1" stop-color="#12627e"/></linearGradient></defs>
+  <rect width="1200" height="750" fill="url(#sea)"/><circle cx="960" cy="150" r="72" fill="#ffd585"/>
+  <path d="M0 410q180-50 340 0t330 0 300 5 230-10v345H0Z" fill="#167592" opacity=".8"/>
+  <path d="M0 560h1200v190H0z" fill="#dcc8a5"/><path d="M0 545h1200" stroke="#f8f3e8" stroke-width="28"/>
+  <rect x="130" y="510" width="330" height="90" rx="30" fill="#f5efe4"/><rect x="740" y="510" width="330" height="90" rx="30" fill="#f5efe4"/>
+  <rect x="205" y="480" width="180" height="55" rx="20" fill="#62a69a"/><rect x="815" y="480" width="180" height="55" rx="20" fill="#62a69a"/>
+  <text x="70" y="105" font-family="Georgia,serif" font-size="54" fill="#123d55">Andaman Suite</text>
+</svg>

@@ -32,6 +32,7 @@ import CustomerModal from "../customer/CustomerModal";
 import { useCustomerEditor } from "../customer/useCustomerEditor";
 import AvailableRoomTable from "./AvailableRoomTable";
 import { createBooking, fetchAvailableRooms } from "./booking.api";
+import type { BookingPrefill } from "./prefill";
 import { BOOKING_CHANNELS, type BookingChannel } from "./types";
 
 type FormValues = {
@@ -46,21 +47,26 @@ type FormValues = {
 
 const noRooms: never[] = [];
 
-export default function BookingCreatePage() {
+export default function BookingCreatePage({ prefill = {} }: { prefill?: BookingPrefill }) {
   const router = useRouter();
   const { message } = App.useApp();
-  const { user, can } = useSession();
-  const chainWide = user?.scopeLevel === "CHAIN";
+  const { user, can, selectedBranchId } = useSession();
+  const chainWide = user?.scopeLevel === "CHAIN" && !selectedBranchId;
   const canAddCustomer = can("CUSTOMER_MANAGE");
   const [form] = Form.useForm<FormValues>();
-  const [roomIds, setRoomIds] = useState<number[]>([]);
+  const [roomIds, setRoomIds] = useState<number[]>(prefill.roomId ? [prefill.roomId] : []);
   const [saving, setSaving] = useState(false);
+  // Dates from the availability grid; a past check-in is dropped (the picker disallows it too).
+  const prefillStay: [Dayjs, Dayjs] | undefined =
+    prefill.checkIn && prefill.checkOut && !dayjs(prefill.checkIn).isBefore(dayjs().startOf("day"))
+      ? [dayjs(prefill.checkIn), dayjs(prefill.checkOut)]
+      : undefined;
 
   const pickedBranch = Form.useWatch("branchId", form);
   const customerId = Form.useWatch("customerId", form);
   const stay = Form.useWatch("stay", form);
   const guestCount = Form.useWatch("guestCount", form) ?? 1;
-  const branchId = chainWide ? pickedBranch : (user?.branchId ?? undefined);
+  const branchId = chainWide ? pickedBranch : (selectedBranchId ?? user?.branchId ?? undefined);
   const checkIn = stay?.[0]?.format("YYYY-MM-DD");
   const checkOut = stay?.[1]?.format("YYYY-MM-DD");
   const nights = stay?.[0] && stay?.[1] ? stay[1].startOf("day").diff(stay[0].startOf("day"), "day") : 0;
@@ -138,7 +144,7 @@ export default function BookingCreatePage() {
         form={form}
         layout="vertical"
         requiredMark="optional"
-        initialValues={{ guestCount: 1, bookingChannel: "WALK_IN", confirm: true }}
+        initialValues={{ guestCount: 1, bookingChannel: "WALK_IN", confirm: true, branchId: prefill.branchId, stay: prefillStay }}
         onFinish={submit}
         disabled={saving}
       >

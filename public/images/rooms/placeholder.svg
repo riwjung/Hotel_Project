@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Room photo placeholder</title>
+  <rect width="1200" height="750" fill="#eef3fb"/>
+  <path d="M0 570 300 340l210 170 180-140 510 380H0Z" fill="#c8d6ef"/>
+  <circle cx="930" cy="185" r="76" fill="#f2c879"/>
+  <text x="600" y="680" text-anchor="middle" font-family="Arial,sans-serif" font-size="44" fill="#506690">Room photo unavailable</text>
+</svg>

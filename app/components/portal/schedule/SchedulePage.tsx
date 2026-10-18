@@ -21,9 +21,9 @@ const monday = (d: dayjs.Dayjs) => d.subtract((d.day() + 6) % 7, "day").startOf(
 
 export default function SchedulePage() {
   const { message, modal } = App.useApp();
-  const { user, can } = useSession();
+  const { user, can, selectedBranchId } = useSession();
   const canManage = can("SCHEDULE_MANAGE");
-  const chainWide = user?.scopeLevel === "CHAIN";
+  const chainWide = user?.scopeLevel === "CHAIN" && !selectedBranchId;
   const [branchId, setBranchId] = useState<number | undefined>();
   const [from, setFrom] = useState(() => monday(dayjs()).format("YYYY-MM-DD"));
   const [adding, setAdding] = useState<AddTarget | null>(null);

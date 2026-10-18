@@ -16,8 +16,8 @@ type NextStatus = Extract<HousekeepingStatus, "IN_PROGRESS" | "DONE" | "VERIFIED
 
 export default function HousekeepingPage() {
   const { message, modal } = App.useApp();
-  const { user, can } = useSession();
-  const chainWide = user?.scopeLevel === "CHAIN" && can("BRANCH_VIEW");
+  const { user, can, selectedBranchId } = useSession();
+  const chainWide = user?.scopeLevel === "CHAIN" && !selectedBranchId && can("BRANCH_VIEW");
   const [filter, setFilter] = useState<HousekeepingFilter>({ date: dayjs().format("YYYY-MM-DD") });
   const [actingId, setActingId] = useState<number | null>(null);
   const tasks = useApiData((signal) => fetchHousekeeping(filter, signal), JSON.stringify(filter));
@@ -97,7 +97,7 @@ export default function HousekeepingPage() {
           <HousekeepingTable
             tasks={data}
             loading={tasks.loading}
-            showBranch={user?.scopeLevel === "CHAIN"}
+            showBranch={user?.scopeLevel === "CHAIN" && !selectedBranchId}
             canManage={can("HOUSEKEEPING_MANAGE")}
             actingId={actingId}
             onAdvance={requestAdvance}

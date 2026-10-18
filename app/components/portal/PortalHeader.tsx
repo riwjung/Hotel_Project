@@ -1,10 +1,11 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Avatar, Button, Dropdown, Layout, Skeleton, Space, Tag, Typography, theme } from "antd";
+import { Avatar, Button, Dropdown, Layout, Select, Skeleton, Space, Tag, Typography, theme } from "antd";
 import { BankOutlined, LogoutOutlined, MenuOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { useSession } from "@/app/lib/auth-client";
 import { findNavItem } from "@/app/lib/nav";
+import { useBranchOptions } from "./branch/useBranchOptions";
 
 type Props = {
   isMobile: boolean;
@@ -22,7 +23,8 @@ const initials = (name: string) =>
 
 export default function PortalHeader({ isMobile, collapsed, onToggle }: Props) {
   const pathname = usePathname();
-  const { user, loading, logout } = useSession();
+  const { user, loading, selectedBranchId, selectBranch, logout } = useSession();
+  const branchOptions = useBranchOptions({ activeOnly: false, forSwitcher: true });
   const { token } = theme.useToken();
   const title = findNavItem(pathname)?.label ?? "Hotel Portal";
 
@@ -54,11 +56,21 @@ export default function PortalHeader({ isMobile, collapsed, onToggle }: Props) {
         <Skeleton.Button active size="small" style={{ width: 140 }} />
       ) : (
         <Space size={12}>
-          {!isMobile && (
-            <Tag icon={<BankOutlined />} color={user.scopeLevel === "CHAIN" ? "blue" : "default"}>
-              {user.scopeLevel === "CHAIN" ? "All branches" : user.branchName}
+          {user.scopeLevel === "CHAIN" ? (
+            <Select
+              aria-label="Working branch"
+              value={selectedBranchId}
+              loading={branchOptions.loading}
+              placeholder="All branches"
+              style={{ width: isMobile ? 126 : 210 }}
+              options={[{ value: 0, label: "All branches" }, ...branchOptions.options]}
+              onChange={(value) => selectBranch(value || undefined)}
+            />
+          ) : !isMobile ? (
+            <Tag icon={<BankOutlined />}>
+              {user.branchName}
             </Tag>
-          )}
+          ) : null}
           <Dropdown
             trigger={["click"]}
             menu={{

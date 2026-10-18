@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Button, Dropdown, Space, Table, Tooltip, Typography, type TableColumnsType } from "antd";
 import { DeleteOutlined, DownOutlined, EditOutlined } from "@ant-design/icons";
 import { ROOM_STATUS } from "@/app/lib/status";
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export default function RoomTable({ rooms, loading, showBranch, canManage = false, onEdit, onDelete, onSetStatus }: Props) {
+  const router = useRouter();
   const columns: TableColumnsType<Room> = [
     ...(showBranch
       ? [{ title: "Branch", dataIndex: "branchCode", sorter: sortText<Room>((r) => r.branchCode) }]
@@ -113,7 +115,7 @@ export default function RoomTable({ rooms, loading, showBranch, canManage = fals
       dataSource={rooms}
       scroll={{ x: "max-content" }}
       pagination={{ pageSize: 8, hideOnSinglePage: true, size: "small" }}
-      onRow={(r) => (canManage && onEdit ? { onClick: () => onEdit(r), style: { cursor: "pointer" } } : {})}
+      onRow={(r) => ({ onClick: () => router.push(`/rooms/${r.roomId}`), style: { cursor: "pointer" } })}
       title={() => (
         <Space wrap size={[8, 8]}>
           {counts.map(([status, n]) => (

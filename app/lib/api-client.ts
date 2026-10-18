@@ -20,6 +20,8 @@ type Options = {
   signal?: AbortSignal;
 };
 
+export const SELECTED_BRANCH_STORAGE_KEY = "hotel:selected-branch";
+
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
   const { method = "GET", body, params, signal } = options;
 
@@ -34,11 +36,17 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
 
   let res: Response;
   try {
+    const headers: Record<string, string> = {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (typeof window !== "undefined") {
+      const selectedBranchId = window.sessionStorage.getItem(SELECTED_BRANCH_STORAGE_KEY);
+      if (selectedBranchId) headers["X-Hotel-Branch-Id"] = selectedBranchId;
+    }
     res = await fetch(url, {
       method,
       signal,
       cache: "no-store",
-      headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (err) {

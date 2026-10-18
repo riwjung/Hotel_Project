@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Button, Space, Table, Tooltip, Typography, type TableColumnsType } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { BRANCH_STATUS } from "@/app/lib/status";
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function BranchTable({ branches, loading, canManage, onEdit, onDelete }: Props) {
+  const router = useRouter();
   const columns: TableColumnsType<Branch> = [
     {
       title: "Code",
@@ -93,7 +95,7 @@ export default function BranchTable({ branches, loading, canManage, onEdit, onDe
       dataSource={branches}
       scroll={{ x: "max-content" }}
       pagination={{ pageSize: 8, hideOnSinglePage: true, size: "small" }}
-      onRow={(r) => (canManage ? { onClick: () => onEdit(r), style: { cursor: "pointer" } } : {})}
+      onRow={(r) => ({ onClick: () => router.push(`/branches/${r.branchId}`), style: { cursor: "pointer" } })}
     />
   );
 }

@@ -5,6 +5,14 @@ export function fetchBranches(signal?: AbortSignal) {
   return api<Branch[]>("/api/branches", { signal });
 }
 
+export function fetchBranchOptions(signal?: AbortSignal) {
+  return api<Branch[]>("/api/branches/options", { signal });
+}
+
+export function fetchBranch(id: number, signal?: AbortSignal) {
+  return api<Branch>(`/api/branches/${id}`, { signal });
+}
+
 export function createBranch(input: BranchInput) {
   return api<Branch>("/api/branches", { method: "POST", body: input });
 }

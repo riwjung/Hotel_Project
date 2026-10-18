@@ -16,6 +16,7 @@ status: done
 | path | สถานะ | permission |
 |---|---|---|
 | `/rooms` | ✅ list + filter + legend, สร้าง/แก้/ลบห้อง, เปลี่ยนสถานะด่วน | `ROOM_VIEW` / `ROOM_MANAGE` |
+| `/rooms/[id]` | ✅ Descriptions + current rate + amenities + gallery/fallback | `ROOM_VIEW` |
 | `/room-types` | ✅ CRUD + เลือก amenity (M:N) — แก้ได้เฉพาะ account ระดับเครือ | `ROOM_VIEW` / `ROOM_MANAGE` |
 | `/amenities` | ✅ CRUD + icon — แก้ได้เฉพาะ account ระดับเครือ | `ROOM_VIEW` / `ROOM_MANAGE` |
 | `/room-rates` | ✅ CRUD ต่อสาขา, ป้าย "In use today", ช่วงทับ → 409 (R1) | `RATE_MANAGE` |
@@ -24,10 +25,12 @@ status: done
 | method | path | สถานะ |
 |---|---|---|
 | GET | `/api/rooms?branchId=&status=` | ✅ (branch scope บังคับฝั่ง server) |
+| GET | `/api/rooms/:id` | ✅ detail + `room_image` + amenities + rate ปัจจุบัน |
+| GET | `/api/availability?branchId=&from=&days=` | ✅ grid ห้อง × คืน; overlap ตรงกับ R3 |
 
 ## Backlog
 - [x] Rooms: create/edit/delete, เปลี่ยนสถานะด่วน (ห้ามตั้ง/ปลด OCCUPIED เอง; ห้องที่ซ่อมค้างยัง MAINTENANCE ตาม R15; เปลี่ยน type ระหว่างมี booking ไม่ได้ R3d) — 2026-10-18
-- [ ] Room detail: Descriptions + gallery (`room_image`, cover 1 รูป)
+- [x] Room detail: Descriptions + gallery (`room_image`, cover 1 รูป); seed ใช้ SVG ที่มีจริงใน `public/images/rooms` และมี fallback — 2026-10-18
 - [x] Room types + amenity picker (checkbox → `room_type_amenity`, โน้ตเดิมยังอยู่); ลด capacity ใต้ stay ที่ active ไม่ได้ (R11c)
 - [x] Room rates: ตารางต่อ (branch, type) เรียงตามวัน + ป้าย "In use today"; ช่วงทับ → 409 "overlaps another active rate …" (R1)
-- [ ] หน้าตารางห้องว่าง (availability grid ห้อง × วัน) ← ใช้ร่วมกับ [[D-booking]]
+- [x] หน้าตารางห้องว่าง (availability grid ห้อง × คืน) ← ใช้ร่วมกับ [[D-booking]] — 2026-10-18

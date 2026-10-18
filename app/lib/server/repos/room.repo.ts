@@ -5,6 +5,7 @@ import {
   ROOM_STATUSES,
   type ManualRoomStatus,
   type Room,
+  type RoomDetail,
   type RoomFilter,
   type RoomInput,
   type RoomStatus,
@@ -65,6 +66,38 @@ export function listRooms(scope: number | null, filter: RoomFilter): Promise<Roo
 export async function getRoom(db: Db, id: number, scope: number | null): Promise<Room | null> {
   const { rows } = await db.query<Room>(`${SELECT_ROOM} WHERE r.room_id = $1 AND ($2::int IS NULL OR r.branch_id = $2)`, [id, scope]);
   return rows[0] ?? null;
+}
+
+export async function getRoomDetail(id: number, scope: number | null): Promise<RoomDetail | null> {
+  const [room] = await query<Room>(`${SELECT_ROOM} WHERE r.room_id = $1 AND ($2::int IS NULL OR r.branch_id = $2)`, [id, scope]);
+  if (!room) return null;
+  const [images, amenities, rates] = await Promise.all([
+    query<RoomDetail["images"][number]>(
+      `SELECT image_id AS "imageId", image_url AS "imageUrl", image_caption AS "imageCaption", is_cover AS "isCover"
+       FROM room_image WHERE room_id = $1 ORDER BY is_cover DESC, sort_order, image_id`,
+      [id],
+    ),
+    query<RoomDetail["amenities"][number]>(
+      `SELECT a.amenity_id AS "amenityId", a.amenity_name AS "amenityName", a.amenity_group AS "amenityGroup", rta.note
+       FROM room_type_amenity rta JOIN amenity a ON a.amenity_id = rta.amenity_id
+       WHERE rta.room_type_id = $1 ORDER BY a.amenity_group, a.amenity_name`,
+      [room.roomTypeId],
+    ),
+    query<{ currentRateName: string; currentPrice: number; minNights: number }>(
+      `SELECT rate_name AS "currentRateName", price_per_night AS "currentPrice", min_nights AS "minNights"
+       FROM room_rate WHERE branch_id = $1 AND room_type_id = $2 AND rate_status = 'ACTIVE'
+         AND current_date BETWEEN start_date AND end_date ORDER BY start_date DESC LIMIT 1`,
+      [room.branchId, room.roomTypeId],
+    ),
+  ]);
+  return {
+    ...room,
+    images,
+    amenities,
+    currentRateName: rates[0]?.currentRateName ?? null,
+    currentPrice: rates[0]?.currentPrice ?? null,
+    minNights: rates[0]?.minNights ?? null,
+  };
 }
 
 export async function createRoom(db: Db, scope: number | null, input: RoomInput): Promise<number> {
