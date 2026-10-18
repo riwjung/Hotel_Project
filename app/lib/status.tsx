@@ -7,8 +7,11 @@ import {
   ClearOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  EyeInvisibleOutlined,
   ExclamationCircleOutlined,
   FireOutlined,
+  GlobalOutlined,
+  HourglassOutlined,
   LoginOutlined,
   LogoutOutlined,
   MinusCircleOutlined,
@@ -23,6 +26,8 @@ import type { RoomStatus } from "@/app/components/portal/room/types";
 import type { BookingStatus, PaymentStatus } from "@/app/components/portal/booking/types";
 import type { HousekeepingStatus } from "@/app/components/portal/housekeeping/types";
 import type { MaintenancePriority, MaintenanceStatus } from "@/app/components/portal/maintenance/types";
+import type { PromotionStatus } from "@/app/components/portal/promotion/types";
+import type { ReviewStatus } from "@/app/components/portal/review/types";
 
 // Status palettes: DB stores the code, the UI shows label + color + icon.
 // Color is never the only signal (icon + label too). Key order = workflow order,
@@ -81,6 +86,18 @@ export const MAINTENANCE_PRIORITY: Record<MaintenancePriority, StatusMeta> = {
   MEDIUM: { label: "Medium", color: "blue",    icon: <MinusOutlined /> },
   HIGH:   { label: "High",   color: "orange",  icon: <ArrowUpOutlined /> },
   URGENT: { label: "Urgent", color: "red",     icon: <FireOutlined /> },
+};
+
+export const PROMOTION_STATUS: Record<PromotionStatus, StatusMeta> = {
+  ACTIVE:   { label: "Active",   color: "green",   icon: <CheckCircleOutlined /> },
+  INACTIVE: { label: "Inactive", color: "default", icon: <MinusCircleOutlined /> },
+  EXPIRED:  { label: "Expired",  color: "volcano", icon: <HourglassOutlined /> },
+};
+
+export const REVIEW_STATUS: Record<ReviewStatus, StatusMeta> = {
+  PENDING:   { label: "Pending",   color: "gold",    icon: <ClockCircleOutlined /> },
+  PUBLISHED: { label: "Published", color: "green",   icon: <GlobalOutlined /> },
+  HIDDEN:    { label: "Hidden",    color: "default", icon: <EyeInvisibleOutlined /> },
 };
 
 /** Options for a status filter <Select>, in workflow order. */

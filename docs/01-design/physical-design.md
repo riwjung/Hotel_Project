@@ -18,7 +18,7 @@ updated: 2026-10-10
 | `060_e_services.sql` | service_category, service, branch_service, booking_service, service_assignment, employee_service_skill |
 | `070_f_operations.sql` | housekeeping_task, maintenance_request |
 | `075_g_transactions.sql` | payment, review |
-| `080_business_rules.sql` | R1–R16 (ด้านล่าง) |
+| `080_business_rules.sql` | R1–R18 (ด้านล่าง) |
 | `085_totals_triggers.sql` | ยอดรวม — [[ADR-003-stored-totals-with-triggers]] |
 | `090_views.sql` | `v_dashboard_branch_today`, `v_booking_overview` |
 
@@ -87,13 +87,16 @@ updated: 2026-10-10
 | R13 | `customer.tier_id` = tier ที่ `min_point` สูงสุดที่ ≤ `member_point` (แอปเลือก tier เองไม่ได้); ladder ต้องเริ่มที่ 0 แต้ม | trigger BEFORE INSERT/UPDATE OF member_point, tier_id บน `customer` + **statement-level** trigger บน `member_tier` (เปลี่ยนเกณฑ์ → คำนวณลูกค้าทุกคนใหม่) — [[ADR-006-member-tier-discount-and-derived-tier]] |
 | R15 | ห้องที่มีงานซ่อมค้าง (OPEN / IN_PROGRESS) = `MAINTENANCE` (ยกเว้นห้องที่มีแขก OCCUPIED หรือ OUT_OF_SERVICE) — ปิดงานสุดท้าย → `CLEANING` ถ้ายังมีงานแม่บ้านค้าง ไม่งั้น `AVAILABLE`; workflow OPEN → IN_PROGRESS → RESOLVED/CANCELLED (RESOLVED ใส่ `done_date`); ห้องต้องอยู่สาขาเดียวกับคำขอ | BEFORE บน `maintenance_request` (workflow + ห้องตรงสาขา) · AFTER sync ห้อง · BEFORE UPDATE OF room_status บน `room` กันการปล่อยห้องระหว่างซ่อม (เช่น check-out → CLEANING) |
 | R16 | คนที่ถูก assign งานของสาขาต้องอยู่สาขานั้น: ช่างซ่อม, แม่บ้าน + ผู้ตรวจ, คนทำ service, คนเข้ากะ — พนักงานระดับเครือ (`branch_id` NULL) ได้ทุกสาขา | `fn_assert_employee_in_branch()` + trigger BEFORE บน `maintenance_request`, `housekeeping_task`, `service_assignment`, `work_schedule` |
+| R14 | check-out แล้วลูกค้าได้แต้ม = floor(grand_total / 100) — แล้ว tier ขยับตาม R13 | trigger AFTER UPDATE OF booking_status … WHEN (→ CHECKED_OUT); อัตราอยู่ที่ `fn_points_for_amount()` ที่เดียว |
+| R17 | เงินไม่เกิน: รับชำระ (PAID) ≤ ยอดค้าง, คืนเงิน ≤ ยอดที่จ่ายสุทธิ; สถานะ PENDING → PAID/FAILED เท่านั้น (PAID/FAILED/REFUNDED final) | trigger BEFORE บน `payment` + `SELECT … FOR UPDATE` แถว booking กันสองเคาน์เตอร์รับเงินพร้อมกัน |
+| R18 | promotion ที่ booking ใช้แล้ว ห้ามเปลี่ยน discount_type / discount_value / minimum_amount (ยอดของ booking คำนวณจาก promotion แถวนั้น) | trigger BEFORE UPDATE OF … บน `promotion` |
 
 เมื่อเปลี่ยนวัน/สาขาของ booking → trigger "touch" แถว booking_room/booking_service → R3/R4/R12 ถูกตรวจซ้ำ + คิด night_count ใหม่อัตโนมัติ
 
 ส่วนลด: `discount_amount` = promotion + member rate % ของยอดที่เหลือ (`fn_booking_discounts`), อัตรา member เป็น snapshot
 ใน `booking.member_discount_rate` ตอนจอง — tier ที่เปลี่ยนทีหลังไม่ทำให้ยอดของ booking เก่าเปลี่ยน ([[ADR-006-member-tier-discount-and-derived-tier]])
 
-ทดสอบทั้งหมด: `npm run db:test` (34 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK;
+ทดสอบทั้งหมด: `npm run db:test` (45 cases ใน `db/tests/business_rules.test.sql`, รันใน transaction แล้ว ROLLBACK;
 เทสต์ของ R11b ใช้ `SET CONSTRAINTS … IMMEDIATE` บังคับให้ deferred trigger ทำงานก่อน ROLLBACK)
 
 ## ยังไม่ได้บังคับ (backlog)

@@ -637,3 +637,105 @@ END $$;
 CREATE TRIGGER trg_work_schedule_10_check_branch
   BEFORE INSERT OR UPDATE OF employee_id, shift_id ON work_schedule
   FOR EACH ROW EXECUTE FUNCTION fn_work_schedule_check_branch();
+
+
+-- ---------------------------------------------------------------------
+-- R14 · Loyalty points: checking out earns 1 point per ฿100 of grand_total
+--      (rounded down). The earn rate lives only in fn_points_for_amount().
+--      CHECKED_OUT is final (R7), so points are awarded once per stay; the new
+--      balance then moves the tier through R13.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_points_for_amount(p_amount numeric) RETURNS integer
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT floor(p_amount / 100)::integer
+$$;
+
+CREATE FUNCTION fn_booking_award_points() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE customer SET member_point = member_point + fn_points_for_amount(NEW.grand_total)
+  WHERE customer_id = NEW.customer_id;
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_booking_92_award_points
+  AFTER UPDATE OF booking_status ON booking
+  FOR EACH ROW
+  WHEN (NEW.booking_status = 'CHECKED_OUT' AND OLD.booking_status <> 'CHECKED_OUT')
+  EXECUTE FUNCTION fn_booking_award_points();
+
+
+-- ---------------------------------------------------------------------
+-- R17 · Payments never overshoot
+--      a) a PAID payment ≤ outstanding balance (grand_total − net paid)
+--      b) a refund ≤ net paid (Σ paid − Σ refunded) — refunds are booking-level
+--      c) status: PENDING → PAID | FAILED; PAID, FAILED and REFUNDED are final
+--      The booking row is locked FOR UPDATE so two desks taking money at the
+--      same moment are serialized.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_money(p_amount numeric) RETURNS text
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT '฿' || to_char(p_amount, 'FM999,999,999,990.00')
+$$;
+
+CREATE FUNCTION fn_payment_validate() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_code   booking.booking_code%TYPE;
+  v_grand  booking.grand_total%TYPE;
+  v_paid   numeric;
+BEGIN
+  IF TG_OP = 'UPDATE' AND NEW.payment_status <> OLD.payment_status
+     AND NOT (OLD.payment_status = 'PENDING' AND NEW.payment_status IN ('PAID', 'FAILED')) THEN
+    RAISE EXCEPTION 'A % payment cannot become %', lower(OLD.payment_status), lower(NEW.payment_status);
+  END IF;
+
+  IF NEW.payment_status NOT IN ('PAID', 'REFUNDED') THEN
+    RETURN NEW;                                      -- pending / failed money is not counted yet
+  END IF;
+
+  SELECT booking_code, grand_total INTO v_code, v_grand FROM booking WHERE booking_id = NEW.booking_id FOR UPDATE;
+  SELECT COALESCE(sum(CASE WHEN payment_type = 'REFUND' THEN -amount ELSE amount END), 0) INTO v_paid
+  FROM payment
+  WHERE booking_id = NEW.booking_id
+    AND payment_status IN ('PAID', 'REFUNDED')
+    AND payment_id <> NEW.payment_id;
+
+  IF NEW.payment_type = 'REFUND' THEN
+    IF NEW.amount > v_paid THEN
+      RAISE EXCEPTION 'Refund of % is more than the % paid on booking %', fn_money(NEW.amount), fn_money(v_paid), v_code;
+    END IF;
+  ELSIF NEW.amount > v_grand - v_paid THEN
+    RAISE EXCEPTION 'Payment of % is more than the outstanding balance of % on booking %',
+      fn_money(NEW.amount), fn_money(greatest(v_grand - v_paid, 0)), v_code;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_payment_10_validate
+  BEFORE INSERT OR UPDATE OF amount, payment_type, payment_status, booking_id ON payment
+  FOR EACH ROW EXECUTE FUNCTION fn_payment_validate();
+
+
+-- ---------------------------------------------------------------------
+-- R18 · A promotion already used by bookings keeps its discount terms
+--      (discount_type, discount_value, minimum_amount). Bookings recompute their
+--      totals from the promotion row (085), so changing the terms would silently
+--      reprice existing bookings. Rename it, change dates/limit/status — or
+--      create a new promotion.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_promotion_lock_terms() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF (NEW.discount_type, NEW.discount_value, NEW.minimum_amount)
+       IS DISTINCT FROM (OLD.discount_type, OLD.discount_value, OLD.minimum_amount)
+     AND EXISTS (SELECT 1 FROM booking WHERE promotion_id = NEW.promotion_id) THEN
+    RAISE EXCEPTION 'Promotion % is already used by bookings, so its discount cannot change. Create a new promotion instead.',
+      OLD.promotion_code;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_promotion_10_lock_terms
+  BEFORE UPDATE OF discount_type, discount_value, minimum_amount ON promotion
+  FOR EACH ROW EXECUTE FUNCTION fn_promotion_lock_terms();

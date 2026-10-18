@@ -14,7 +14,7 @@ import {
   Typography,
   type TableColumnsType,
 } from "antd";
-import { ArrowLeftOutlined, CheckOutlined, CreditCardOutlined, LoginOutlined, LogoutOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CheckOutlined, CreditCardOutlined, LoginOutlined, LogoutOutlined, RollbackOutlined } from "@ant-design/icons";
 import { useSession } from "@/app/lib/auth-client";
 import { codeLabel, formatDate, formatDateTime, formatMoney } from "@/app/lib/format";
 import { BOOKING_STATUS, PAYMENT_STATUS } from "@/app/lib/status";
@@ -25,6 +25,9 @@ import StatusTag from "../StatusTag";
 import { changeBookingStatus, checkInBooking, checkOutBooking, fetchBooking, recordBookingPayment } from "./booking.api";
 import CheckInModal from "./CheckInModal";
 import CheckOutModal from "./CheckOutModal";
+import { createRefund } from "../payment/payment.api";
+import RefundModal from "../payment/RefundModal";
+import type { RefundInput } from "../payment/types";
 import PaymentModal from "./PaymentModal";
 import type {
   BookingGuest,
@@ -46,6 +49,7 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const booking = bookingState.data;
 
@@ -199,7 +203,18 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
       <Card variant="outlined" title="Services" styles={{ body: { padding: booking.services.length ? 0 : 24 } }}>
         {booking.services.length ? <Table rowKey="bookingServiceId" columns={serviceColumns} dataSource={booking.services} {...tableProps} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No services ordered for this booking." />}
       </Card>
-      <Card variant="outlined" title="Payments" styles={{ body: { padding: booking.payments.length ? 0 : 24 } }}>
+      <Card
+        variant="outlined"
+        title="Payments"
+        styles={{ body: { padding: booking.payments.length ? 0 : 24 } }}
+        extra={
+          can("PAYMENT_MANAGE") && booking.paidTotal > 0 ? (
+            <Button danger size="small" icon={<RollbackOutlined />} onClick={() => setRefundOpen(true)}>
+              Refund
+            </Button>
+          ) : null
+        }
+      >
         {booking.payments.length ? <Table rowKey="paymentId" columns={paymentColumns} dataSource={booking.payments} {...tableProps} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No payments recorded yet." />}
       </Card>
       <Card variant="outlined" title="Status timeline">
@@ -239,6 +254,13 @@ export default function BookingDetailPage({ bookingId }: { bookingId: number }) 
         saving={saving}
         onCancel={() => setCheckOutOpen(false)}
         onSubmit={(input: CheckOutInput) => void run(() => checkOutBooking(bookingId, input), "Guest checked out and cleaning tasks created", () => setCheckOutOpen(false))}
+      />
+      <RefundModal
+        open={refundOpen}
+        booking={{ bookingId, bookingCode: booking.bookingCode, paidTotal: booking.paidTotal }}
+        saving={saving}
+        onCancel={() => setRefundOpen(false)}
+        onSubmit={(id, input: RefundInput) => void run(() => createRefund(id, input), "Refund recorded", () => setRefundOpen(false))}
       />
     </Space>
   );

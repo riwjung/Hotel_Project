@@ -106,10 +106,10 @@ export const NAV: NavGroup[] = [
     label: "Finance & CX",
     note: "03-modules/G-finance-cx.md",
     items: [
-      { path: "/payments", label: "Payments", icon: "payment", permission: "PAYMENT_VIEW", status: "planned", tables: ["payment"] },
-      { path: "/promotions", label: "Promotions", icon: "promotion", permission: "PROMOTION_MANAGE", status: "planned", tables: ["promotion"] },
-      { path: "/member-tiers", label: "Member Tiers", icon: "tier", permission: "PROMOTION_MANAGE", status: "planned", tables: ["member_tier"] },
-      { path: "/reviews", label: "Reviews", icon: "review", permission: "REVIEW_VIEW", status: "planned", tables: ["review"] },
+      { path: "/payments", label: "Payments", icon: "payment", permission: "PAYMENT_VIEW", status: "ready", tables: ["payment"] },
+      { path: "/promotions", label: "Promotions", icon: "promotion", permission: "PROMOTION_MANAGE", status: "ready", tables: ["promotion"] },
+      { path: "/member-tiers", label: "Member Tiers", icon: "tier", permission: "PROMOTION_MANAGE", status: "ready", tables: ["member_tier"] },
+      { path: "/reviews", label: "Reviews", icon: "review", permission: "REVIEW_VIEW", status: "ready", tables: ["review"] },
     ],
   },
 ];

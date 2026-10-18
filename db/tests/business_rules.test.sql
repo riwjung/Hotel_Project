@@ -481,7 +481,7 @@ BEGIN
 END $$;
 
 -- R13 · changing a tier threshold re-derives every customer (statement trigger on member_tier)
--- Laura has 1,200 points and Somchai 1,800. Raising Silver to 1,500 drops only Laura to Basic.
+-- Laura has 1,312 points (1,200 + 112 from her BK-0005 stay, R14) and Somchai 1,800. Raising Silver to 1,500 drops only Laura.
 DO $$
 DECLARE
   v_laura   member_tier.tier_name%TYPE;
@@ -493,7 +493,7 @@ BEGIN
   SELECT mt.tier_name INTO v_somchai FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id
   WHERE c.email = 'somchai@example.com';
   IF v_laura = 'Basic' AND v_somchai = 'Silver' THEN
-    RAISE NOTICE 'PASS: R13 raising Silver to 1500 moved Laura (1200) to Basic, Somchai (1800) stays Silver';
+    RAISE NOTICE 'PASS: R13 raising Silver to 1500 moved Laura (<1500) to Basic, Somchai (1800) stays Silver';
   ELSE
     RAISE EXCEPTION 'FAIL: after threshold change Laura=% Somchai=%', v_laura, v_somchai;
   END IF;
@@ -652,4 +652,92 @@ BEGIN
   ELSE
     RAISE EXCEPTION 'FAIL: only % of 4 cross-branch assignments were rejected', v_rejected;
   END IF;
+END $$;
+
+-- R14 · checking out earns floor(grand_total / 100) points, and the tier follows (R13)
+-- Somchai (Silver) is given 4,990 points, then BK-0004 (2,850) is walked to CHECKED_OUT: +28 → 5,018 = Gold
+DO $$
+DECLARE
+  v_points integer;
+  v_tier   member_tier.tier_name%TYPE;
+BEGIN
+  UPDATE customer SET member_point = 4990 WHERE customer_id = 3;
+  UPDATE booking SET booking_status = 'CONFIRMED'   WHERE booking_code = 'BK-0004';
+  UPDATE booking SET booking_status = 'CHECKED_IN'  WHERE booking_code = 'BK-0004';
+  UPDATE booking SET booking_status = 'CHECKED_OUT' WHERE booking_code = 'BK-0004';
+  SELECT c.member_point, mt.tier_name INTO v_points, v_tier
+  FROM customer c JOIN member_tier mt ON mt.tier_id = c.tier_id WHERE c.customer_id = 3;
+  IF v_points = 4990 + (SELECT floor(grand_total / 100) FROM booking WHERE booking_code = 'BK-0004') AND v_tier = 'Gold' THEN
+    RAISE NOTICE 'PASS: R14 check-out earned % points and lifted Somchai to Gold', v_points - 4990;
+  ELSE
+    RAISE EXCEPTION 'FAIL: after check-out points=% tier=%', v_points, v_tier;
+  END IF;
+END $$;
+
+-- R17 · a payment cannot exceed the outstanding balance; paying it exactly is fine
+DO $$
+DECLARE
+  v_id      integer := (SELECT booking_id FROM booking WHERE booking_code = 'BK-0001');
+  v_balance numeric := (SELECT grand_total FROM booking WHERE booking_code = 'BK-0001')
+                     - (SELECT COALESCE(sum(amount), 0) FROM payment
+                        WHERE booking_id = (SELECT booking_id FROM booking WHERE booking_code = 'BK-0001')
+                          AND payment_status = 'PAID' AND payment_type <> 'REFUND');
+BEGIN
+  BEGIN
+    INSERT INTO payment (booking_id, amount, payment_type, payment_method, payment_status)
+    VALUES (v_id, v_balance + 1, 'BALANCE', 'CASH', 'PAID');
+    RAISE EXCEPTION 'FAIL: overpayment was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R17 overpayment rejected — %', SQLERRM;
+  END;
+  INSERT INTO payment (booking_id, amount, payment_type, payment_method, payment_status)
+  VALUES (v_id, v_balance, 'BALANCE', 'CASH', 'PAID');
+  RAISE NOTICE 'PASS: R17 paying the exact balance accepted';
+END $$;
+
+-- R17 · a refund cannot exceed what was paid; a pending payment is checked when it is confirmed
+DO $$
+DECLARE
+  v_rejected integer := 0;
+BEGIN
+  BEGIN   -- BK-0006 had 500 paid and 500 refunded already: nothing left to refund
+    INSERT INTO payment (booking_id, amount, payment_type, payment_method, payment_status)
+    VALUES ((SELECT booking_id FROM booking WHERE booking_code = 'BK-0006'), 1, 'REFUND', 'QR', 'REFUNDED');
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- confirming BK-0002's pending 600 deposit after raising it above the grand total
+    UPDATE payment SET amount = 99999 WHERE booking_id = (SELECT booking_id FROM booking WHERE booking_code = 'BK-0002')
+      AND payment_status = 'PENDING';
+    UPDATE payment SET payment_status = 'PAID' WHERE booking_id = (SELECT booking_id FROM booking WHERE booking_code = 'BK-0002')
+      AND payment_status = 'PENDING';
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  BEGIN   -- a failed payment is final
+    UPDATE payment SET payment_status = 'FAILED' WHERE booking_id = (SELECT booking_id FROM booking WHERE booking_code = 'BK-0002')
+      AND payment_status = 'PENDING';
+    UPDATE payment SET payment_status = 'PAID' WHERE booking_id = (SELECT booking_id FROM booking WHERE booking_code = 'BK-0002')
+      AND payment_status = 'FAILED';
+  EXCEPTION WHEN raise_exception THEN v_rejected := v_rejected + 1;
+  END;
+  IF v_rejected = 3 THEN
+    RAISE NOTICE 'PASS: R17 over-refund, over-confirm and FAILED → PAID rejected';
+  ELSE
+    RAISE EXCEPTION 'FAIL: only % of 3 payment violations rejected', v_rejected;
+  END IF;
+END $$;
+
+-- R18 · a promotion already used by bookings keeps its discount terms; other fields can change
+DO $$
+BEGIN
+  BEGIN
+    UPDATE promotion SET discount_value = 20 WHERE promotion_code = 'EARLYBIRD';      -- used by BK-0001
+    RAISE EXCEPTION 'FAIL: changing a used promotion''s discount was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R18 used promotion discount locked — %', SQLERRM;
+  END;
+  UPDATE promotion SET promotion_name = 'Early bird 10% (renamed)' WHERE promotion_code = 'EARLYBIRD';
+  UPDATE promotion SET discount_value = 20 WHERE promotion_code = 'SONGKRAN15';       -- never used
+  RAISE NOTICE 'PASS: R18 renaming a used promotion and re-pricing an unused one accepted';
 END $$;

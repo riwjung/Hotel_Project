@@ -53,8 +53,8 @@ date: 2026-10-17
   BK-0002 / BK-0006 (Basic) เท่าเดิม
 - API ลูกค้าไม่รับ `tierId` แล้ว (zod ตัดทิ้ง; ถ้าส่งมาตรงๆ ใน SQL trigger ก็เขียนทับ)
 - หน้า booking detail แสดง promotion และ member discount แยกกัน; หน้า create booking บอก tier ของลูกค้าที่เลือก
-- **ยังไม่ได้ทำ**: การได้แต้มเพิ่มอัตโนมัติ (เช่นหลัง check-out) — ER ไม่ได้กำหนดอัตราไว้ ต้องให้ผู้ใช้ตัดสินใจก่อน
-- promotion ยังอ่านค่าปัจจุบันทุกครั้ง (ไม่ได้ snapshot) — ถ้าภายหลังทำหน้าแก้ promotion ควรพิจารณา snapshot ด้วย
+- **ต่อยอด 2026-10-18**: ได้แต้มอัตโนมัติตอน check-out 1 แต้ม / ฿100 (R14, `fn_points_for_amount()`) → tier ขยับเองผ่าน R13
+- promotion ไม่ได้ snapshot แต่ R18 ห้ามแก้เงื่อนไขส่วนลดของ promotion ที่ถูกใช้แล้ว → ยอดของ booking เก่าไม่เปลี่ยน
 
 ## ทดสอบ
 `npm run db:test` (34 cases): totals BK-0001/BK-0003, R13 ×4 (insert, ขึ้น/ลง tier, tier ที่ส่งมาถูกเขียนทับ,

@@ -49,11 +49,38 @@ const CHECK_MESSAGES: Record<string, string> = {
   ck_customer_point: "Member points cannot be negative",
   ck_room_rate_dates: "End date must be on or after start date",
   ck_promotion_dates: "End date must be on or after start date",
+  ck_promotion_value: "A percent discount must be between 0 and 100",
+  ck_promotion_usage: "Usage limit must be at least 1",
+  ck_member_tier_discount: "Discount must be between 0% and 100%",
+  ck_room_type_capacity: "Capacity must be at least 1",
+  ck_shift_times: "End time must be after start time unless the shift is overnight",
+  ck_branch_service_hours: "Give both opening and closing time, or neither",
+  ck_maintenance_done: "Done date cannot be before the report date",
+  ck_attendance_clock: "Clock-out cannot be before clock-in",
+  ck_employee_not_own_manager: "An employee cannot be their own manager",
+};
+
+// Unique constraints whose generic "Key (…) already exists" text would read badly.
+const UNIQUE_MESSAGES: Record<string, string> = {
+  uq_review_booking: "This booking already has a review",
+  uq_branch_service: "This service is already offered at this branch",
+  uq_room_branch_number: "This room number already exists in the branch",
+  uq_shift_branch_name: "This branch already has a shift with that name",
+  uq_work_schedule_slot: "This employee already has that shift on that day",
+  uq_member_tier_min_point: "Another tier already starts at that many points",
+  uq_attendance_schedule: "Attendance for this shift is already recorded",
+};
+
+// EXCLUDE constraints (23P01) by name.
+const OVERLAP_MESSAGES: Record<string, string> = {
+  ex_room_rate_no_overlap: "This period overlaps another active rate for the same branch and room type",
 };
 
 function mapPgError(err: PgError): [number, string, string] | null {
   switch (err.code) {
     case "23505": {
+      const known = UNIQUE_MESSAGES[err.constraint ?? ""];
+      if (known) return [409, "DUPLICATE", known];
       const m = /Key \((.+?)\)=\((.+?)\) already exists/.exec(err.detail ?? "");
       return [409, "DUPLICATE", m ? `${capitalize(humanize(m[1]))} "${m[2]}" already exists` : "This record already exists"];
     }
@@ -66,7 +93,7 @@ function mapPgError(err: PgError): [number, string, string] | null {
       return [422, "INVALID_REFERENCE", missing ? `Selected ${humanize(missing[1])} does not exist` : "A referenced record does not exist"];
     }
     case "23P01":
-      return [409, "OVERLAP", "This period overlaps an existing one"];
+      return [409, "OVERLAP", OVERLAP_MESSAGES[err.constraint ?? ""] ?? "This period overlaps an existing one"];
     case "23514":
       return [422, "INVALID_VALUE", CHECK_MESSAGES[err.constraint ?? ""] ?? `Invalid value (${err.constraint})`];
     case "23502":

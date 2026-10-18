@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { Customer, CustomerInput, MemberTier } from "@/app/components/portal/customer/types";
+import type { Customer, CustomerInput } from "@/app/components/portal/customer/types";
 import { query, queryOne, type Db } from "../db";
 
 // Customers are chain-level master data (customer has no branch_id): a guest of
@@ -55,14 +55,6 @@ export function getCustomer(id: number, db?: Db): Promise<Customer | null> {
   const sql = `${SELECT_CUSTOMER} WHERE c.customer_id = $1`;
   if (db) return db.query<Customer>(sql, [id]).then((r) => r.rows[0] ?? null);
   return queryOne<Customer>(sql, [id]);
-}
-
-export function listMemberTiers(): Promise<MemberTier[]> {
-  return query<MemberTier>(
-    `SELECT tier_id AS "tierId", tier_name AS "tierName", min_point AS "minPoint",
-       discount_rate AS "discountRate"
-     FROM member_tier ORDER BY min_point`,
-  );
 }
 
 const values = (input: CustomerInput) => [
