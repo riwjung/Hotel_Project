@@ -68,7 +68,7 @@ export default function RoomDetailPage({ roomId }: { roomId: number }) {
             { key: "zone", label: "Zone", children: room.locationZone || "—" },
             { key: "rate", label: "Current rate", children: room.currentPrice === null ? "—" : `${room.currentRateName} · ${formatMoney(room.currentPrice)} / night` },
             { key: "minimum", label: "Minimum stay", children: room.minNights === null ? "—" : `${room.minNights} night(s)` },
-            { key: "description", label: "Description", children: room.description || "—", span: 3 },
+            { key: "description", label: "Description", children: room.description || "—", span: "filled" },
           ]}
         />
       </Card>

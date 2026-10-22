@@ -17,7 +17,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${fontBody.variable} ${fontDisplay.variable} ${fontThai.variable} ${fontBrand.variable}`}>
+    <html
+      lang="en"
+      className={`${fontBody.variable} ${fontDisplay.variable} ${fontThai.variable} ${fontBrand.variable}`}
+      // Font/translation extensions may add attributes to <html> before React hydrates.
+      suppressHydrationWarning
+    >
       <body>
         {/* Extracts antd's CSS-in-JS during SSR so pages don't flash unstyled */}
         <AntdRegistry>
