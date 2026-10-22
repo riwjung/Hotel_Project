@@ -103,6 +103,10 @@ pagination, Upload, Empty ถ้าตั้ง locale ผิดจะได้ 
 - สีแบรนด์อยู่ใน `globals.css`: `--ivory` `--sand-paper` `--gold-light` `--gold` `--gold-deep` `--ink` `--ink-muted` `--hairline`
 - ทองอ่อน `--gold` (`#b8975a`) ใช้กับเส้น/ของตกแต่งเท่านั้น — **ข้อความสีทองต้องใช้ `--gold-deep`/`colorPrimary`** ไม่งั้น contrast ไม่ผ่าน
 - สีสถานะ (§6) **ไม่เปลี่ยนตามแบรนด์** — สีของสถานะแปลว่าความหมาย
+- ทุกหน้าได้ธีมจาก `app/providers.tsx` ที่เดียว **ห้ามใส่สีเองในหน้า** — ใช้ `token.*` จาก `theme.useToken()`
+  - พื้นหน้า `colorBgLayout` `#f6f4ef` (ทรายอุ่น) · เส้น/เทา/fill อุ่นทั้งหมดผ่าน `colorTextBase` `#2b261e`
+  - สเกลทอง (`colorPrimaryBg`, `colorPrimaryHover` …) **กำหนดตายตัว** — ปล่อยให้ antd คำนวณจากทองเข้มจะได้สีน้ำตาลเทาขุ่น
+  - หัวตาราง ivory `#faf6ee`, ดาว Rate สีทอง, หัว Card/Modal/Drawer ใช้ฟอนต์แบรนด์ผ่าน `ConfigProvider card/modal/drawer.styles.title`
 
 ## 4. โครงหน้า
 
