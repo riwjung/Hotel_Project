@@ -26,6 +26,7 @@ export type Room = {
   typeName: string;
   capacity: number;
   bedType: string;
+  amenities: RoomAmenity[];
 };
 
 export type RoomImage = {
@@ -35,16 +36,23 @@ export type RoomImage = {
   isCover: boolean;
 };
 
+/** A photo already in some room's gallery — what the room form can pick from */
+export type RoomImageOption = {
+  imageUrl: string;
+  imageCaption: string | null;
+  usedBy: string; // e.g. "BKK · Deluxe, CNX · Deluxe"
+};
+
 export type RoomAmenity = {
   amenityId: number;
   amenityName: string;
   amenityGroup: string;
+  icon: string | null;
   note: string | null;
 };
 
 export type RoomDetail = Room & {
   images: RoomImage[];
-  amenities: RoomAmenity[];
   currentRateName: string | null;
   currentPrice: number | null;
   minNights: number | null;
@@ -55,7 +63,10 @@ export type RoomFilter = {
   status?: RoomStatus;
 };
 
-/** Body of POST /api/rooms and PATCH /api/rooms/:id (branchId and status only on create) */
+/**
+ * Body of POST /api/rooms and PATCH /api/rooms/:id (branchId and status only on create).
+ * imageUrls replaces the gallery in order — the first is the cover; leave it out to keep the gallery.
+ */
 export type RoomInput = {
   branchId?: number | null;
   roomTypeId: number;
@@ -65,4 +76,5 @@ export type RoomInput = {
   locationZone: string | null;
   description: string | null;
   roomStatus?: ManualRoomStatus;
+  imageUrls?: string[];
 };

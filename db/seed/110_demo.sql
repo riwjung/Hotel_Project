@@ -58,10 +58,40 @@ INSERT INTO room (room_id, branch_id, room_type_id, room_number, room_name, floo
   (14, 3, 3, '103', NULL,                1, 'Pool side',   'AVAILABLE'),
   (15, 3, 4, '201', 'Andaman Suite',     2, 'Sea view',    'AVAILABLE');
 
+-- Photos: one set per branch x room type (docs/05-dev/room-image-prompts.md); rooms of a type share a set.
 INSERT INTO room_image (room_id, image_url, image_caption, is_cover, sort_order) VALUES
-  ( 7, '/images/rooms/bkk-301-cover.svg',    'Living room with river view', true,  1),
-  ( 7, '/images/rooms/bkk-301-bath.svg',     'Bathroom with bathtub',       false, 2),
-  (15, '/images/rooms/hkt-201-cover.svg',    'Sea view balcony',            true,  1);
+  ( 1, '/images/rooms/bkk-std-bed.jpg',      'Queen bed with garden view',      true,  1),
+  ( 1, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  ( 2, '/images/rooms/bkk-std-bed-2.jpg',    'Queen bed with garden view',      true,  1),
+  ( 2, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  ( 3, '/images/rooms/bkk-std-bed.jpg',      'Queen bed with garden view',      true,  1),
+  ( 3, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  ( 4, '/images/rooms/bkk-dlx-bed.jpg',      'King bed with river view',        true,  1),
+  ( 4, '/images/rooms/bkk-dlx-bed-3.jpg',    'Sitting area by the river',       false, 2),
+  ( 4, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 3),
+  ( 5, '/images/rooms/bkk-dlx-bed-2.jpg',    'King bed with river view',        true,  1),
+  ( 5, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  ( 6, '/images/rooms/bkk-fam-bed.jpg',      'Two queen beds and river balcony', true, 1),
+  ( 6, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  ( 7, '/images/rooms/bkk-ste-bed.jpg',      'Suite bedroom with river view',   true,  1),
+  ( 7, '/images/rooms/bkk-ste-living.jpg',   'Living room with river view',     false, 2),
+  ( 7, '/images/rooms/ste-bath.jpg',         'Bathroom with bathtub',           false, 3),
+  ( 8, '/images/rooms/cnx-std-bed.jpg',      'Lanna queen room by the courtyard', true, 1),
+  ( 8, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  ( 9, '/images/rooms/cnx-std-bed.jpg',      'Lanna queen room by the courtyard', true, 1),
+  ( 9, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  (10, '/images/rooms/cnx-dlx-bed.jpg',      'King bed and sitting area',       true,  1),
+  (10, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  (11, '/images/rooms/cnx-fam-bed.jpg',      'Two queen beds and garden balcony', true, 1),
+  (11, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  (12, '/images/rooms/hkt-dlx-bed.jpg',      'King bed with pool terrace',      true,  1),
+  (12, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  (13, '/images/rooms/hkt-dlx-bed.jpg',      'King bed with pool terrace',      true,  1),
+  (13, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  (14, '/images/rooms/hkt-fam-bed.jpg',      'Two queen beds by the pool',      true,  1),
+  (14, '/images/rooms/room-bath.jpg',        'Bathroom with rain shower',       false, 2),
+  (15, '/images/rooms/hkt-ste-bed.jpg',      'Suite bedroom with sea view',     true,  1),
+  (15, '/images/rooms/ste-bath.jpg',         'Bathroom with bathtub',           false, 2);
 
 INSERT INTO room_rate (rate_id, branch_id, room_type_id, rate_name, start_date, end_date, price_per_night, min_nights)
 OVERRIDING SYSTEM VALUE VALUES

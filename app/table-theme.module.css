@@ -1,0 +1,7 @@
+/* AntD has no alternating-row token. Semantic classes keep this shared by all
+   tables, including fixed cells. Count data rows only (skip measurement rows).
+   Hover, selection, sorted columns and inline availability colors take priority. */
+.row:nth-child(even of .row):not(:global(.ant-table-row-selected))
+  > .cell:not(:global(.ant-table-cell-row-hover)):not(:global(.ant-table-column-sort)) {
+  background: #f3f6f8;
+}

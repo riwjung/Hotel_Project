@@ -94,6 +94,8 @@ export default function BookingCreatePage({ prefill = {} }: { prefill?: BookingP
   const capacity = selectedRooms.reduce((sum, room) => sum + room.capacity, 0);
   const roomTotal = selectedRooms.reduce((sum, room) => sum + room.pricePerNight * nights, 0);
   const overCapacity = selectedRooms.length > 0 && guestCount > capacity;
+  // Check-in records one primary guest per room, so a room cannot stay empty.
+  const tooFewGuests = guestCount < selectedRooms.length;
 
   const customerEditor = useCustomerEditor((saved) => {
     customers.reload();
@@ -107,6 +109,10 @@ export default function BookingCreatePage({ prefill = {} }: { prefill?: BookingP
     }
     if (overCapacity) {
       message.error(`The selected rooms sleep ${capacity}; add a room or reduce the guests`);
+      return;
+    }
+    if (tooFewGuests) {
+      message.error(`${selectedRooms.length} rooms need at least ${selectedRooms.length} guests; add guests or remove a room`);
       return;
     }
     setSaving(true);
@@ -268,6 +274,15 @@ export default function BookingCreatePage({ prefill = {} }: { prefill?: BookingP
                 style={{ marginTop: 16 }}
                 title={`${guestCount} guests but the selected rooms sleep ${capacity}`}
                 description="Add another room or reduce the guests. The database rejects bookings over capacity."
+              />
+            )}
+            {tooFewGuests && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginTop: 16 }}
+                title={`${selectedRooms.length} rooms but only ${guestCount} guest(s)`}
+                description="Every room needs at least one guest at check-in. Add guests or remove a room. The database rejects bookings with an empty room."
               />
             )}
             <Row gutter={16} style={{ marginTop: 16 }}>

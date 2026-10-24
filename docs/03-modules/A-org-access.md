@@ -27,6 +27,7 @@ owner = แถวใน `employee` ที่ role `OWNER`, `scope_level='CHAIN'`
 | POST | `/api/auth/login` · `/api/auth/logout` · GET `/api/auth/me` | ✅ |
 
 ## Backlog
+- [x] Dashboard photo slideshow follows the header working branch and server-side session scope; All branches combines room galleries — 2026-10-24 (see [[2026-10-24-session-log#Dashboard branch photo slideshow — Codex]])
 - [x] Employees: list (filter สาขา/สถานะ + ค้นหา), create/edit, reset password, เปลี่ยน manager (R2b) — 2026-10-18
   - กัน privilege escalation: ให้ role ได้เฉพาะที่สิทธิ์ ⊆ สิทธิ์ของผู้ให้ (manager ตั้ง owner ไม่ได้, reset รหัสคนที่สิทธิ์สูงกว่าไม่ได้)
   - ไม่มีปุ่มลบ: booking/งาน/log อ้างถึงพนักงาน → ใช้สถานะ RESIGNED (login ไม่ได้)

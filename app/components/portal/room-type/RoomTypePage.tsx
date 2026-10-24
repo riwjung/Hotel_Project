@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Empty, Space, Table, Tag, Tooltip, Typography, type TableColumnsType } from "antd";
+import { Button, Card, Empty, Space, Table, Tooltip, Typography, type TableColumnsType } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { useSession } from "@/app/lib/auth-client";
 import { formatMoney } from "@/app/lib/format";
@@ -8,6 +8,7 @@ import { sortNumber, sortText } from "@/app/lib/table-sort";
 import { useApiData } from "@/app/lib/use-api-data";
 import { useCrudEditor } from "@/app/lib/use-crud-editor";
 import { fetchAmenities } from "../amenity/amenity.api";
+import AmenityTag from "../amenity/AmenityTag";
 import LoadError from "../LoadError";
 import { createRoomType, deleteRoomType, fetchRoomTypes, updateRoomType } from "./room-type.api";
 import RoomTypeModal from "./RoomTypeModal";
@@ -19,6 +20,7 @@ export default function RoomTypePage() {
   const canManage = can("ROOM_MANAGE") && user?.scopeLevel === "CHAIN";
   const types = useApiData(fetchRoomTypes, "room-types");
   const amenities = useApiData(fetchAmenities, "room-type-amenities");
+  const amenitiesById = new Map((amenities.data ?? []).map((amenity) => [amenity.amenityId, amenity]));
   const editor = useCrudEditor<RoomType, RoomTypeInput>({
     noun: "room type",
     label: (t) => t.typeCode,
@@ -53,8 +55,8 @@ export default function RoomTypePage() {
       render: (_, t) =>
         t.amenityNames.length ? (
           <Space size={[4, 4]} wrap style={{ maxWidth: 360 }}>
-            {t.amenityNames.map((name) => (
-              <Tag key={name}>{name}</Tag>
+            {t.amenityNames.map((name, index) => (
+              <AmenityTag key={t.amenityIds[index]} amenityName={name} icon={amenitiesById.get(t.amenityIds[index])?.icon} />
             ))}
           </Space>
         ) : (

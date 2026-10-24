@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeftOutlined, HomeOutlined, PictureOutlined } from "@ant-design/icons";
-import { Button, Card, Descriptions, Empty, Image, Space, Tag, Typography } from "antd";
+import { Button, Card, Descriptions, Empty, Image, Space, Typography } from "antd";
 import { formatMoney } from "@/app/lib/format";
 import { ROOM_STATUS } from "@/app/lib/status";
 import { useApiData } from "@/app/lib/use-api-data";
 import LoadError from "../LoadError";
+import AmenityTag from "../amenity/AmenityTag";
 import StatusTag from "../StatusTag";
 import { fetchRoom } from "./room.api";
 
@@ -75,7 +76,7 @@ export default function RoomDetailPage({ roomId }: { roomId: number }) {
 
       <Card variant="outlined" title="Amenities">
         {room.amenities.length ? (
-          <Space wrap>{room.amenities.map((item) => <Tag key={item.amenityId}>{item.amenityName}{item.note ? ` · ${item.note}` : ""}</Tag>)}</Space>
+          <Space wrap>{room.amenities.map((item) => <AmenityTag key={item.amenityId} {...item} />)}</Space>
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No amenities assigned to this room type." />
         )}

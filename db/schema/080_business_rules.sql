@@ -299,7 +299,8 @@ CREATE TRIGGER trg_review_10_check_booking
 --      a) GUEST rows of one booked room ≤ that room type's capacity
 --         (checked per row; the booked-room line is locked FOR UPDATE so two
 --         concurrent check-ins into the same room are serialized)
---      b) BOOKING.guest_count ≤ Σ capacity of all its rooms
+--      b) number of rooms ≤ BOOKING.guest_count ≤ Σ capacity of all its rooms
+--         (the lower bound: check-in records one primary guest per room)
 --         A booking is inserted before its rooms, and a 4-guest booking of two
 --         2-person rooms is "over capacity" after the first room. So (b) is a
 --         DEFERRABLE INITIALLY DEFERRED constraint trigger: it runs at COMMIT,
@@ -354,6 +355,10 @@ BEGIN
   IF v_rooms > 0 AND v_guests > v_capacity THEN
     RAISE EXCEPTION 'Booking % has % guest(s) but its room(s) hold only %',
       v_code, v_guests, v_capacity;
+  END IF;
+  IF v_guests < v_rooms THEN
+    RAISE EXCEPTION 'Booking % has % guest(s) for % rooms; every room needs at least one guest',
+      v_code, v_guests, v_rooms;
   END IF;
 END $$;
 

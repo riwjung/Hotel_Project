@@ -1,9 +1,95 @@
+/* Metrics, with a small photo postcard beside them on wide screens */
+.overview {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.overview > * {
+  min-width: 0;
+}
+
 /* ui-standard.md §4 — metric grid */
 .metricGrid {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
-  margin-bottom: 20px;
+}
+
+.postcard {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  margin: 0;
+  padding: 8px 8px 4px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--ivory);
+  box-shadow: 0 6px 20px rgba(138, 108, 55, 0.08);
+}
+
+.postcardPhoto {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--sand-paper);
+}
+
+.postcardImage {
+  object-fit: cover;
+}
+
+.postcardCaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 0 0 4px;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.postcardText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.postcardText strong {
+  color: var(--gold-deep);
+  font-weight: 600;
+}
+
+@media (min-width: 992px) {
+  .withPhotos {
+    grid-template-columns: minmax(0, 1fr) clamp(220px, 21vw, 290px);
+  }
+  .withPhotos .metricGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Decoration only: below desktop width the metrics get the whole row. */
+@media (max-width: 991px) {
+  .postcard {
+    display: none;
+  }
+}
+
+.metricGrid > * {
+  min-width: 0;
+}
+
+.metricLink {
+  display: block;
+  border-radius: 8px;
+}
+
+.metricLink:focus-visible {
+  outline: 2px solid var(--gold-deep);
+  outline-offset: 4px;
 }
 
 @media (max-width: 575px) {

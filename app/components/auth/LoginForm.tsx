@@ -34,7 +34,13 @@ export default function LoginForm() {
   return (
     <Card
       variant="outlined"
-      style={{ width: "100%", maxWidth: 400, background: "var(--ivory)", borderColor: "var(--hairline)" }}
+      style={{
+        width: "100%",
+        maxWidth: 400,
+        background: "var(--ivory)",
+        borderColor: "var(--hairline)",
+        boxShadow: "0 12px 40px rgba(138, 108, 55, 0.12)",
+      }}
       styles={{ body: { padding: "36px 32px 32px" } }}
     >
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>

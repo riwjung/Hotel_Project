@@ -15,7 +15,7 @@ status: done
 ## หน้าจอ
 | path | สถานะ | permission |
 |---|---|---|
-| `/rooms` | ✅ list + filter + legend, สร้าง/แก้/ลบห้อง, เปลี่ยนสถานะด่วน | `ROOM_VIEW` / `ROOM_MANAGE` |
+| `/rooms` | ✅ list + filter + legend, สร้าง/แก้/ลบห้อง (เลือกรูป gallery จากรูปที่มีอยู่), เปลี่ยนสถานะด่วน | `ROOM_VIEW` / `ROOM_MANAGE` |
 | `/rooms/[id]` | ✅ Descriptions + current rate + amenities + gallery/fallback | `ROOM_VIEW` |
 | `/room-types` | ✅ CRUD + เลือก amenity (M:N) — แก้ได้เฉพาะ account ระดับเครือ | `ROOM_VIEW` / `ROOM_MANAGE` |
 | `/amenities` | ✅ CRUD + icon — แก้ได้เฉพาะ account ระดับเครือ | `ROOM_VIEW` / `ROOM_MANAGE` |
@@ -26,11 +26,16 @@ status: done
 |---|---|---|
 | GET | `/api/rooms?branchId=&status=` | ✅ (branch scope บังคับฝั่ง server) |
 | GET | `/api/rooms/:id` | ✅ detail + `room_image` + amenities + rate ปัจจุบัน |
+| POST / PATCH | `/api/rooms`, `/api/rooms/:id` | ✅ body มี `imageUrls?` (ลำดับ = ลำดับรูป, รูปแรก = ปก) → แทนที่ gallery ใน transaction เดียวกัน; ไม่ส่ง = คง gallery เดิม |
+| GET | `/api/room-images` | ✅ รูปที่ใช้อยู่ใน gallery ของห้องใน scope (+ caption + "BKK · Deluxe") — `ROOM_MANAGE` |
 | GET | `/api/availability?branchId=&from=&days=` | ✅ grid ห้อง × คืน; overlap ตรงกับ R3 |
 
 ## Backlog
+- [x] Amenities icons: shared tags in Rooms / Room types / room detail, actual icon previews in Amenities; room API includes configured icons and preserves branch scope — 2026-10-24
 - [x] Rooms: create/edit/delete, เปลี่ยนสถานะด่วน (ห้ามตั้ง/ปลด OCCUPIED เอง; ห้องที่ซ่อมค้างยัง MAINTENANCE ตาม R15; เปลี่ยน type ระหว่างมี booking ไม่ได้ R3d) — 2026-10-18
 - [x] Room detail: Descriptions + gallery (`room_image`, cover 1 รูป); seed ใช้ SVG ที่มีจริงใน `public/images/rooms` และมี fallback — 2026-10-18
 - [x] Room types + amenity picker (checkbox → `room_type_amenity`, โน้ตเดิมยังอยู่); ลด capacity ใต้ stay ที่ active ไม่ได้ (R11c)
 - [x] Room rates: ตารางต่อ (branch, type) เรียงตามวัน + ป้าย "In use today"; ช่วงทับ → 409 "overlaps another active rate …" (R1)
 - [x] หน้าตารางห้องว่าง (availability grid ห้อง × คืน) ← ใช้ร่วมกับ [[D-booking]] — 2026-10-18
+- [x] Room modal เลือกรูป gallery จากรูปที่มีอยู่ (multi-select มี thumbnail, “Make cover”); server รับเฉพาะ URL ที่อยู่ใน library ของ scope ผู้ใช้ (ไม่งั้น 422 `UNKNOWN_IMAGE`) — 2026-10-24
+- [ ] อัปโหลดรูปใหม่ (ตอนนี้รูปใหม่เข้าได้ทาง seed เท่านั้น — [[room-image-prompts]])

@@ -6,6 +6,7 @@ import { DeleteOutlined, DownOutlined, EditOutlined } from "@ant-design/icons";
 import { ROOM_STATUS } from "@/app/lib/status";
 import { sortByOrder, sortNumber, sortText } from "@/app/lib/table-sort";
 import StatusTag from "../StatusTag";
+import AmenityTag from "../amenity/AmenityTag";
 import { MANUAL_ROOM_STATUSES, ROOM_STATUSES, type ManualRoomStatus, type Room } from "./types";
 
 type Props = {
@@ -46,6 +47,16 @@ export default function RoomTable({ rooms, loading, showBranch, canManage = fals
       ),
     },
     { title: "Guests", dataIndex: "capacity", align: "right", sorter: sortNumber<Room>((r) => r.capacity) },
+    {
+      title: "Amenities",
+      key: "amenities",
+      sorter: sortNumber<Room>((r) => r.amenities.length),
+      render: (_, r) => r.amenities.length ? (
+        <Space size={[4, 4]} wrap style={{ maxWidth: 320 }}>
+          {r.amenities.map((amenity) => <AmenityTag key={amenity.amenityId} amenityName={amenity.amenityName} icon={amenity.icon} />)}
+        </Space>
+      ) : <Typography.Text type="secondary">—</Typography.Text>,
+    },
     { title: "Floor", dataIndex: "floor", align: "right", sorter: sortNumber<Room>((r) => r.floor) },
     {
       title: "Zone",

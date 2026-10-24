@@ -117,6 +117,7 @@ Layout (minHeight: 100dvh)
 - `minWidth: 0` บน Content **จำเป็น** ไม่งั้นตารางกว้าง ๆ จะดัน layout แตกแทนที่จะ scroll ในตัวเอง
 - padding ใช้ `clamp()` ไม่ใช่ media query — ลื่นกว่าและโค้ดน้อยกว่า
 - Sider บนจอเล็กต้องเป็น Drawer เสมอ ไม่ใช่ยุบให้แคบลง
+- Desktop Sider ต้อง stretch ตามความสูงหน้า; จำกัด `height: 100dvh` และ sticky/overflow ที่ wrapper ของเมนูด้านในเท่านั้น เพื่อไม่ให้มีพื้นเทาใต้ sidebar ในหน้ายาว เช่น Attendance
 
 ### Metric grid
 
@@ -146,6 +147,14 @@ Layout (minHeight: 100dvh)
 - filter/search อยู่ใน `extra` ไม่ใช่ลอยเหนือการ์ด
 
 ### Table
+
+**Shared Sand & Sky table theme (2026-10-23):** กำหนดสีทุกตารางผ่าน `components.Table` ใน
+`app/providers.tsx`: header ทรายทอง `#e9ddc7` / ตัวอักษร `#57462c`, body งาช้าง `#fffdf9`,
+hover `#efe3cc`, selected `#e8d6b2` และเส้นคั่น `#e2d7c4`.
+แถวสลับฟ้าเทา `#f3f6f8` ใช้ `app/table-theme.module.css` ผ่าน ConfigProvider table semantic classes
+เพราะ AntD ไม่มี alternating-row token; ไม่ทับ hover, selected, sorted column หรือสี inline ของ Availability.
+ใช้ theme กลางนี้กับตารางใหม่ด้วย ไม่กำหนดสี header แยกในแต่ละ feature.
+
 ```tsx
 <Table
   rowKey="id"

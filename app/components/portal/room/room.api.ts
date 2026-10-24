@@ -1,8 +1,13 @@
 import { api } from "@/app/lib/api-client";
-import type { ManualRoomStatus, Room, RoomDetail, RoomFilter, RoomInput, RoomStatus } from "./types";
+import type { ManualRoomStatus, Room, RoomDetail, RoomFilter, RoomImageOption, RoomInput, RoomStatus } from "./types";
 
 export function fetchRooms(filter: RoomFilter, signal?: AbortSignal) {
   return api<Room[]>("/api/rooms", { params: filter, signal });
+}
+
+/** Photos already used in room galleries (within the user's branch scope) */
+export function fetchRoomImageLibrary(signal?: AbortSignal) {
+  return api<RoomImageOption[]>("/api/room-images", { signal });
 }
 
 export function fetchRoom(id: number, signal?: AbortSignal) {

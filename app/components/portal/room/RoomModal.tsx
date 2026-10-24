@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { Col, Form, Input, InputNumber, Modal, Row, Select } from "antd";
 import { ROOM_STATUS } from "@/app/lib/status";
+import { useApiData } from "@/app/lib/use-api-data";
 import { useBranchOptions } from "../branch/useBranchOptions";
 import type { RoomType } from "../room-type/types";
+import { fetchRoom, fetchRoomImageLibrary } from "./room.api";
+import RoomImagePicker from "./RoomImagePicker";
 import type { Room, RoomInput } from "./types";
 
 type Props = {
@@ -21,6 +25,23 @@ const START_STATUSES = ["AVAILABLE", "MAINTENANCE", "OUT_OF_SERVICE"] as const;
 export default function RoomModal({ open, room, roomTypes, saving, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm<RoomInput>();
   const { chainWide, options: branchOptions } = useBranchOptions({ activeOnly: true });
+  const library = useApiData(
+    (signal) => (open ? fetchRoomImageLibrary(signal) : Promise.resolve([])),
+    `room-image-library:${open}`,
+  );
+  // The list row has no images: an edited room's current gallery comes from its detail.
+  const editingId = open && room ? room.roomId : null;
+  const gallery = useApiData(
+    (signal) => (editingId ? fetchRoom(editingId, signal) : Promise.resolve(null)),
+    `room-gallery:${editingId}`,
+  );
+  const currentImages = gallery.data && gallery.data.roomId === editingId ? gallery.data.images : null;
+  useEffect(() => {
+    if (currentImages && !form.isFieldTouched("imageUrls")) {
+      form.setFieldValue("imageUrls", currentImages.map((image) => image.imageUrl));
+    }
+  }, [currentImages, form]);
+
   const initialValues: Partial<RoomInput> = room
     ? {
         roomTypeId: room.roomTypeId,
@@ -30,7 +51,7 @@ export default function RoomModal({ open, room, roomTypes, saving, onCancel, onS
         locationZone: room.locationZone,
         description: room.description,
       }
-    : { floor: 1, roomStatus: "AVAILABLE" };
+    : { floor: 1, roomStatus: "AVAILABLE", imageUrls: [] };
 
   const finish = (v: RoomInput) =>
     onSubmit({
@@ -42,6 +63,8 @@ export default function RoomModal({ open, room, roomTypes, saving, onCancel, onS
       locationZone: v.locationZone?.trim() || null,
       description: v.description?.trim() || null,
       roomStatus: room ? undefined : v.roomStatus,
+      // undefined while an edited room's gallery is still loading → the server keeps it
+      imageUrls: v.imageUrls,
     });
 
   return (
@@ -112,6 +135,18 @@ export default function RoomModal({ open, room, roomTypes, saving, onCancel, onS
           <Col span={24}>
             <Form.Item label="Description" name="description">
               <Input.TextArea maxLength={255} autoSize={{ minRows: 2, maxRows: 4 }} />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Form.Item
+              label="Photos"
+              name="imageUrls"
+              extra="Pick from photos other rooms already use. The first photo is the cover."
+            >
+              <RoomImagePicker
+                options={library.data ?? []}
+                loading={library.loading || (!!room && !currentImages && gallery.loading)}
+              />
             </Form.Item>
           </Col>
         </Row>

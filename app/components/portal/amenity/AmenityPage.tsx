@@ -53,7 +53,13 @@ export default function AmenityPage() {
       title: "Icon",
       dataIndex: "icon",
       sorter: sortText<Amenity>((a) => a.icon),
-      render: (value: string | null) => value ?? <Typography.Text type="secondary">—</Typography.Text>,
+      render: (value: string | null) => value && Object.hasOwn(AMENITY_ICONS, value) ? (
+        <Tooltip title={value.replace(/Outlined$/, "")}>
+          <span role="img" aria-label={value.replace(/Outlined$/, "")} style={{ fontSize: 20 }}>
+            {AMENITY_ICONS[value]}
+          </span>
+        </Tooltip>
+      ) : <Typography.Text type="secondary">{value || "—"}</Typography.Text>,
     },
     { title: "Room types", dataIndex: "roomTypeCount", align: "right", sorter: sortNumber<Amenity>((a) => a.roomTypeCount) },
   ];

@@ -1,0 +1,48 @@
+.sidebarViewport {
+  /* The Sider stretches with the page; only the menu is viewport-sized. */
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow: auto;
+}
+
+.content {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(16px, 3vw, 28px);
+  background: var(--ivory);
+}
+
+.backdrop {
+  z-index: -1;
+  object-fit: cover;
+  object-position: center top;
+  pointer-events: none;
+}
+
+.pageBody {
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+/* Fill the space beneath short pages; follow the content on long pages. */
+.landscape {
+  margin-top: auto;
+  padding-top: 20px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.landscapeImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: cover;
+  object-position: center bottom;
+  border-radius: 12px;
+  mask-image: linear-gradient(to bottom, transparent, #000 18%);
+}

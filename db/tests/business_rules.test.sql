@@ -377,6 +377,21 @@ BEGIN
   RAISE NOTICE 'PASS: R11 4 guests across two 2-person rooms accepted at commit';
 END $$;
 
+-- R11 · every room needs its primary guest: guest_count ≥ number of rooms --
+-- Reuses BK-T006 (two rooms) from the test above.
+DO $$
+BEGIN
+  BEGIN
+    UPDATE booking SET guest_count = 1 WHERE booking_code = 'BK-T006';
+    SET CONSTRAINTS trg_booking_95_check_capacity IMMEDIATE;
+    RAISE EXCEPTION 'FAIL: 1 guest across two rooms was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS: R11 fewer guests than rooms rejected — %', SQLERRM;
+  END;
+  SET CONSTRAINTS trg_booking_95_check_capacity DEFERRED;
+END $$;
+
 -- R12 · rate min_nights itself must be at least 1 night -------------------
 DO $$
 BEGIN

@@ -18,8 +18,18 @@ export type DashboardBranchRow = {
 
 export type DashboardTotals = Omit<DashboardBranchRow, "branchId" | "branchCode" | "branchName">;
 
+export type DashboardPhoto = {
+  imageId: number;
+  imageUrl: string;
+  imageCaption: string | null;
+  branchId: number;
+  branchCode: string;
+  branchName: string;
+};
+
 export type DashboardData = {
   today: string; // YYYY-MM-DD, database "today"
   totals: DashboardTotals;
   branches: DashboardBranchRow[];
+  photos: DashboardPhoto[];
 };

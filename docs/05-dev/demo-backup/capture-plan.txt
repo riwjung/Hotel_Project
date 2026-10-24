@@ -1,0 +1,45 @@
+Hotel AdvDB — demo backup capture queue
+Date: 2026-10-23 (Asia/Bangkok)
+Confirmed deck: https://claude.ai/artifact/A8UH78g1SnkrsFNGnbxdkM
+Requested capture method: GoFullPage in Google Chrome.
+Delivery intent: backup appendix; preserve slides 01–23 and their live-demo sequence.
+Status: No screenshots captured yet.
+Updated 2026-10-24: deck is now 23 slides (5 main topics + room gallery 05 + tech stack 07); slide numbers below are the new ones.
+
+Planned captures (PNG):
+01-dashboard-all-branches.png | slides 06,08,11 | owner | Dashboard, All branches, seven menu groups visible
+02-bkk-rooms.png | slide 14 | owner | Header working branch BKK, Rooms
+03-bkk-branch-detail.png | slides 03,14 | owner | Branches > BKK
+04-role-permissions.png | slide 15 | owner | Roles and permission matrix; capture additional pages if necessary
+05-staff-branches-403.png | slide 15 | staff.bkk | Navigate directly to /branches, show 403
+06-bkk-room-301.png | slides 05,16 | owner | Rooms > BKK room 301: gallery (3 photos), amenities and rate
+07-booking-bk0001.png | slides 17,20,22 | owner | Full booking detail: rooms, guests, services, payments, timeline, totals
+08-booking-bk0001-totals.png | slide 20 | owner | Four total fields at readable size
+09-bkk-availability-14-nights.png | slide 21 | owner | BKK, 14 nights
+10-prefilled-booking.png | slide 21 | owner | Click a visible free-night + from previous screen; capture prefilled /bookings/new; do not submit
+11-database-tests.png | slide 23 | terminal | Capture actual successful npm run db:test output only (58 tests after 2026-10-24; run db:reset first)
+12-service-orders.png | slide 18 | owner | /service-orders
+13-skills.png | slide 18 | owner | /skills
+14-schedules.png | slide 19 | owner | /schedules
+15-attendance.png | slide 19 | owner | /attendance
+16-branch-services.png | slide 04 | owner | /branch-services, price per branch
+17-room-rates.png | slide 04 | owner | /room-rates
+18-docker-ps.png | slide 07 | terminal | docker ps showing hotel-advdb-postgres (healthy)
+
+Current blockers:
+- Chrome is running. Follow-up: ChatGPT extension is now installed and enabled in the Default profile, but the native-host manifest/registry connection is still absent.
+- No connected browser is available to control GoFullPage or open/edit the Claude slide artifact.
+- No local PPTX source in the repository. User confirmed the existing Claude deck.
+- The presentation skill's load_workspace_dependencies tool is unavailable in this session; local PPTX authoring cannot start through the required workflow.
+
+Database evidence:
+- Ran npm run db:test against the current demo database; output saved as db-test-output.txt.
+- Actual result: 54 passed, 1+ FAILED. R21 fails after using current_date (2026-10-23) against seeded shifts dated 2026-10-18.
+- Existing schedule 3 is already COMPLETED, so later R22 fixtures may also require isolation from changed demo data.
+- Did not reset the database, alter tests, or fabricate a successful terminal capture.
+
+Next actions:
+- Connect ChatGPT Browser to Chrome through Settings > Computer use; repair/reinstall Browser plugin if the native host remains missing.
+- Capture real application pages with the requested GoFullPage workflow.
+- Resolve test fixture/date assumptions safely before obtaining the successful terminal capture.
+- Add readable backup slides with source-slide references to the confirmed deck and verify all slides visually.
